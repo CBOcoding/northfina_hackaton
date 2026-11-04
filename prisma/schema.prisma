@@ -1,0 +1,48 @@
+// Database schema. Change it, then run `npm run db:migrate -- --name <what_changed>`.
+// Never hand-write files in prisma/migrations/: the Prisma CLI generates them.
+// SQLite has no enums here, so allowed values (category, condition, status) are
+// checked with Zod in src/data/schemas.ts before anything is written.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// One physical item that can be leased, returned, refurbished and leased again.
+// Mirrors data/assets.json; `usage` is stored as two columns.
+model Asset {
+  id             String   @id
+  category       String // e_bike | laptop | farm_machine
+  make           String
+  model          String
+  model_year     Int
+  serial_number  String   @unique
+  condition      String // new | like_new | good | fair | poor
+  usage_unit     String // km | battery_cycles | engine_hours
+  usage_value    Int
+  previous_lives Int
+  status         String // available | reserved | returned
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([category])
+}
+
+// Who changed what, and when. Written in the same transaction as the change
+// (see src/server/audit.ts), so a change without an audit row cannot exist.
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  created_at   DateTime @default(now())
+  actor        String
+  action       String // e.g. asset.status_changed
+  entity_type  String // e.g. asset
+  entity_id    String
+  details_json String? // JSON text, e.g. {"from":"available","to":"reserved"}
+
+  @@index([entity_type, entity_id])
+  @@index([created_at])
+}
