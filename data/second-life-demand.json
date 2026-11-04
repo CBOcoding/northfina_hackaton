@@ -1,0 +1,128 @@
+[
+  {
+    "id": "wait-01",
+    "category": "e_bike",
+    "max_monthly_net_rent_cents": 4500,
+    "min_condition": "good",
+    "preferred_term_months": 24,
+    "needed_by": "2026-11-20",
+    "who": "Student in Helsinki"
+  },
+  {
+    "id": "wait-02",
+    "category": "e_bike",
+    "max_monthly_net_rent_cents": 9000,
+    "min_condition": "fair",
+    "preferred_term_months": 12,
+    "needed_by": "2026-11-10",
+    "who": "Delivery courier, accepts scratches"
+  },
+  {
+    "id": "wait-03",
+    "category": "e_bike",
+    "max_monthly_net_rent_cents": 6000,
+    "min_condition": "like_new",
+    "preferred_term_months": 36,
+    "needed_by": "2026-12-15",
+    "who": "Commuter, wants it to look new"
+  },
+  {
+    "id": "wait-04",
+    "category": "e_bike",
+    "max_monthly_net_rent_cents": 12000,
+    "min_condition": "good",
+    "preferred_term_months": 24,
+    "needed_by": "2027-01-05",
+    "who": "Small bakery, cargo bike for deliveries"
+  },
+  {
+    "id": "wait-05",
+    "category": "e_bike",
+    "max_monthly_net_rent_cents": 3500,
+    "min_condition": "good",
+    "preferred_term_months": 12,
+    "needed_by": "2026-11-08",
+    "who": "Tourist rental shop, short term"
+  },
+  {
+    "id": "wait-06",
+    "category": "laptop",
+    "max_monthly_net_rent_cents": 2500,
+    "min_condition": "good",
+    "preferred_term_months": 24,
+    "needed_by": "2026-11-15",
+    "who": "First-year Hive student"
+  },
+  {
+    "id": "wait-07",
+    "category": "laptop",
+    "max_monthly_net_rent_cents": 4000,
+    "min_condition": "like_new",
+    "preferred_term_months": 12,
+    "needed_by": "2026-11-30",
+    "who": "Freelance designer"
+  },
+  {
+    "id": "wait-08",
+    "category": "laptop",
+    "max_monthly_net_rent_cents": 1800,
+    "min_condition": "fair",
+    "preferred_term_months": 36,
+    "needed_by": "2026-11-12",
+    "who": "Non-profit, needs 3 office laptops"
+  },
+  {
+    "id": "wait-09",
+    "category": "laptop",
+    "max_monthly_net_rent_cents": 3000,
+    "min_condition": "good",
+    "preferred_term_months": 24,
+    "needed_by": "2026-11-09",
+    "who": "School pilot programme"
+  },
+  {
+    "id": "wait-10",
+    "category": "farm_machine",
+    "max_monthly_net_rent_cents": 150000,
+    "min_condition": "good",
+    "preferred_term_months": 48,
+    "needed_by": "2027-03-01",
+    "who": "Young farmer starting out"
+  },
+  {
+    "id": "wait-11",
+    "category": "farm_machine",
+    "max_monthly_net_rent_cents": 95000,
+    "min_condition": "fair",
+    "preferred_term_months": 36,
+    "needed_by": "2027-04-15",
+    "who": "Contractor, seasonal work"
+  },
+  {
+    "id": "wait-12",
+    "category": "farm_machine",
+    "max_monthly_net_rent_cents": 200000,
+    "min_condition": "like_new",
+    "preferred_term_months": 48,
+    "needed_by": "2027-02-01",
+    "who": "Large dairy farm"
+  },
+  {
+    "id": "wait-13",
+    "category": "e_bike",
+    "max_monthly_net_rent_cents": 9000,
+    "min_condition": "good",
+    "preferred_term_months": 24,
+    "needed_by": "2026-11-10",
+    "who": "Delivery courier, same budget as wait-02"
+  },
+  {
+    "id": "wait-14",
+    "category": "laptop",
+    "max_monthly_net_rent_cents": 2500,
+    "min_condition": "good",
+    "preferred_term_months": 24,
+    "needed_by": "2026-11-15",
+    "who": "Same needs as wait-06, signed up one day later"
+  }
+]

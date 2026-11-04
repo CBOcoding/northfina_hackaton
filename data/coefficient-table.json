@@ -1,0 +1,63 @@
+{
+  "id": "ct-2026-1",
+  "version": 1,
+  "valid_from": "2026-01-01",
+  "currency": "EUR",
+  "how_to_use": "monthly_net_rent = financed_amount x factor. financed_amount = net list price - down payment. Pick the band by financed amount and the column by term. Amounts are euro cents, VAT excluded.",
+  "end_of_term_buyout_percent_of_financed": {
+    "12": 40,
+    "24": 25,
+    "36": 15,
+    "48": 8
+  },
+  "bands": [
+    {
+      "band": "A",
+      "min_financed_cents": 30000,
+      "max_financed_cents": 199999,
+      "annual_interest_percent": 9.9,
+      "monthly_factor_by_term": {
+        "12": 0.056022,
+        "24": 0.036637,
+        "36": 0.028625,
+        "48": 0.023949
+      }
+    },
+    {
+      "band": "B",
+      "min_financed_cents": 200000,
+      "max_financed_cents": 999999,
+      "annual_interest_percent": 7.9,
+      "monthly_factor_by_term": {
+        "12": 0.054799,
+        "24": 0.035532,
+        "36": 0.027584,
+        "48": 0.022943
+      }
+    },
+    {
+      "band": "C",
+      "min_financed_cents": 1000000,
+      "max_financed_cents": 4999999,
+      "annual_interest_percent": 6.5,
+      "monthly_factor_by_term": {
+        "12": 0.053945,
+        "24": 0.034764,
+        "36": 0.026864,
+        "48": 0.022251
+      }
+    },
+    {
+      "band": "D",
+      "min_financed_cents": 5000000,
+      "max_financed_cents": 25000000,
+      "annual_interest_percent": 5.5,
+      "monthly_factor_by_term": {
+        "12": 0.053335,
+        "24": 0.034218,
+        "36": 0.026354,
+        "48": 0.021763
+      }
+    }
+  ]
+}

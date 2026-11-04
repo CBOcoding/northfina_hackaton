@@ -1,0 +1,452 @@
+[
+  {
+    "id": "ebike-001",
+    "category": "e_bike",
+    "make": "Kettu Bikes",
+    "model": "Urban 1",
+    "model_year": 2026,
+    "serial_number": "LL-EB-240000",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "ebike-002",
+    "category": "e_bike",
+    "make": "Kettu Bikes",
+    "model": "Urban 2 Step-through",
+    "model_year": 2026,
+    "serial_number": "LL-EB-240137",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "ebike-003",
+    "category": "e_bike",
+    "make": "Nordvolt",
+    "model": "Trail 500",
+    "model_year": 2026,
+    "serial_number": "LL-EB-240274",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "ebike-004",
+    "category": "e_bike",
+    "make": "Nordvolt",
+    "model": "Cargo Duo",
+    "model_year": 2026,
+    "serial_number": "LL-EB-240411",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "ebike-005",
+    "category": "e_bike",
+    "make": "Saimaa Cycles",
+    "model": "Commuter S",
+    "model_year": 2025,
+    "serial_number": "LL-EB-240548",
+    "condition": "like_new",
+    "usage": {
+      "unit": "km",
+      "value": 1200
+    },
+    "previous_lives": 1,
+    "status": "available"
+  },
+  {
+    "id": "ebike-006",
+    "category": "e_bike",
+    "make": "Saimaa Cycles",
+    "model": "Fold Mini",
+    "model_year": 2026,
+    "serial_number": "LL-EB-240685",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "ebike-007",
+    "category": "e_bike",
+    "make": "Nordvolt",
+    "model": "Cargo Duo",
+    "model_year": 2023,
+    "serial_number": "LL-EB-240822",
+    "condition": "fair",
+    "usage": {
+      "unit": "km",
+      "value": 18400
+    },
+    "previous_lives": 1,
+    "status": "returned"
+  },
+  {
+    "id": "ebike-008",
+    "category": "e_bike",
+    "make": "Kettu Bikes",
+    "model": "Urban 1",
+    "model_year": 2022,
+    "serial_number": "LL-EB-240959",
+    "condition": "good",
+    "usage": {
+      "unit": "km",
+      "value": 9800
+    },
+    "previous_lives": 2,
+    "status": "returned"
+  },
+  {
+    "id": "ebike-009",
+    "category": "e_bike",
+    "make": "Lumo",
+    "model": "Gravel X",
+    "model_year": 2026,
+    "serial_number": "LL-EB-241096",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "reserved"
+  },
+  {
+    "id": "ebike-010",
+    "category": "e_bike",
+    "make": "Lumo",
+    "model": "Kids 20",
+    "model_year": 2026,
+    "serial_number": "LL-EB-241233",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "ebike-011",
+    "category": "e_bike",
+    "make": "Saimaa Cycles",
+    "model": "Delivery Pro",
+    "model_year": 2024,
+    "serial_number": "LL-EB-241370",
+    "condition": "good",
+    "usage": {
+      "unit": "km",
+      "value": 22100
+    },
+    "previous_lives": 1,
+    "status": "returned"
+  },
+  {
+    "id": "ebike-012",
+    "category": "e_bike",
+    "make": "Nordvolt",
+    "model": "Trail 500",
+    "model_year": 2026,
+    "serial_number": "LL-EB-241507",
+    "condition": "new",
+    "usage": {
+      "unit": "km",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "laptop-001",
+    "category": "laptop",
+    "make": "Pohja Compute",
+    "model": "Air 13",
+    "model_year": 2026,
+    "serial_number": "LL-LA-241644",
+    "condition": "new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "laptop-002",
+    "category": "laptop",
+    "make": "Pohja Compute",
+    "model": "Pro 14",
+    "model_year": 2026,
+    "serial_number": "LL-LA-241781",
+    "condition": "new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "laptop-003",
+    "category": "laptop",
+    "make": "Pohja Compute",
+    "model": "Pro 16",
+    "model_year": 2026,
+    "serial_number": "LL-LA-241918",
+    "condition": "new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "laptop-004",
+    "category": "laptop",
+    "make": "Saimaa Systems",
+    "model": "Studio 15",
+    "model_year": 2026,
+    "serial_number": "LL-LA-242055",
+    "condition": "new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "laptop-005",
+    "category": "laptop",
+    "make": "Saimaa Systems",
+    "model": "Edu 11",
+    "model_year": 2026,
+    "serial_number": "LL-LA-242192",
+    "condition": "new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "laptop-006",
+    "category": "laptop",
+    "make": "Pohja Compute",
+    "model": "Air 13",
+    "model_year": 2024,
+    "serial_number": "LL-LA-242329",
+    "condition": "good",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 310
+    },
+    "previous_lives": 1,
+    "status": "returned"
+  },
+  {
+    "id": "laptop-007",
+    "category": "laptop",
+    "make": "Saimaa Systems",
+    "model": "Studio 15",
+    "model_year": 2023,
+    "serial_number": "LL-LA-242466",
+    "condition": "fair",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 780
+    },
+    "previous_lives": 2,
+    "status": "returned"
+  },
+  {
+    "id": "laptop-008",
+    "category": "laptop",
+    "make": "Revontuli",
+    "model": "Gamer 17",
+    "model_year": 2026,
+    "serial_number": "LL-LA-242603",
+    "condition": "new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "laptop-009",
+    "category": "laptop",
+    "make": "Revontuli",
+    "model": "Office 14",
+    "model_year": 2025,
+    "serial_number": "LL-LA-242740",
+    "condition": "like_new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 45
+    },
+    "previous_lives": 1,
+    "status": "available"
+  },
+  {
+    "id": "laptop-010",
+    "category": "laptop",
+    "make": "Pohja Compute",
+    "model": "Pro 14",
+    "model_year": 2026,
+    "serial_number": "LL-LA-242877",
+    "condition": "new",
+    "usage": {
+      "unit": "battery_cycles",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "farm-001",
+    "category": "farm_machine",
+    "make": "Harju Agro",
+    "model": "T-90 Tractor",
+    "model_year": 2026,
+    "serial_number": "LL-FA-243014",
+    "condition": "new",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "farm-002",
+    "category": "farm_machine",
+    "make": "Harju Agro",
+    "model": "T-140 Tractor",
+    "model_year": 2026,
+    "serial_number": "LL-FA-243151",
+    "condition": "new",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "farm-003",
+    "category": "farm_machine",
+    "make": "Lumi Machines",
+    "model": "Bale Wrapper 2",
+    "model_year": 2026,
+    "serial_number": "LL-FA-243288",
+    "condition": "new",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "farm-004",
+    "category": "farm_machine",
+    "make": "Lumi Machines",
+    "model": "Seed Drill 4m",
+    "model_year": 2025,
+    "serial_number": "LL-FA-243425",
+    "condition": "like_new",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 140
+    },
+    "previous_lives": 1,
+    "status": "available"
+  },
+  {
+    "id": "farm-005",
+    "category": "farm_machine",
+    "make": "Harju Agro",
+    "model": "T-90 Tractor",
+    "model_year": 2021,
+    "serial_number": "LL-FA-243562",
+    "condition": "good",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 4200
+    },
+    "previous_lives": 1,
+    "status": "returned"
+  },
+  {
+    "id": "farm-006",
+    "category": "farm_machine",
+    "make": "Peltola",
+    "model": "Combine CX",
+    "model_year": 2026,
+    "serial_number": "LL-FA-243699",
+    "condition": "new",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "farm-007",
+    "category": "farm_machine",
+    "make": "Peltola",
+    "model": "Robot Milker",
+    "model_year": 2026,
+    "serial_number": "LL-FA-243836",
+    "condition": "new",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  },
+  {
+    "id": "farm-008",
+    "category": "farm_machine",
+    "make": "Lumi Machines",
+    "model": "Mower 3m",
+    "model_year": 2026,
+    "serial_number": "LL-FA-243973",
+    "condition": "new",
+    "usage": {
+      "unit": "engine_hours",
+      "value": 0
+    },
+    "previous_lives": 0,
+    "status": "available"
+  }
+]

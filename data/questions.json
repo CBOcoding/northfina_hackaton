@@ -1,0 +1,494 @@
+{
+  "how_to_use": "Ask a question only when every condition in ask_when is true (an empty list means always). Fields: customer_type, category, financed_amount_cents, term_months, answers.<question id>. Ops: in, gte, lte. If an earlier answer changes, conditions can flip: decide what happens to answers that no longer apply.",
+  "eligibility_rules": [
+    {
+      "id": "min_age",
+      "text": "Consumers and sole traders must be 18 or older on the contract start date."
+    },
+    {
+      "id": "residency",
+      "text": "Country of residence must be FI, SE or EE."
+    },
+    {
+      "id": "affordability",
+      "text": "For consumers, monthly rent incl. VAT may be at most 30 % of monthly net income."
+    },
+    {
+      "id": "business_id",
+      "text": "Sole traders and companies need a valid Finnish business ID (check digit)."
+    },
+    {
+      "id": "pep_manual_review",
+      "text": "A politically exposed person is never auto-approved: the case goes to manual review by a person."
+    },
+    {
+      "id": "financed_limits",
+      "text": "Financed amount must fit a coefficient-table band (300 EUR to 250,000 EUR)."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q_customer_type",
+      "type": "choice",
+      "text": {
+        "en": "Who is leasing?",
+        "fi": "Kuka vuokraa?",
+        "sv": "Vem leasar?",
+        "et": "Kes liisib?"
+      },
+      "why_we_ask": {
+        "en": "Everything else depends on this."
+      },
+      "ask_when": [],
+      "options": [
+        "consumer",
+        "sole_trader",
+        "company"
+      ]
+    },
+    {
+      "id": "q_full_name",
+      "type": "text",
+      "text": {
+        "en": "Your full name",
+        "fi": "Koko nimesi",
+        "sv": "Ditt fullständiga namn",
+        "et": "Sinu täisnimi"
+      },
+      "why_we_ask": {
+        "en": "The contract is made in your name."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "consumer",
+            "sole_trader"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q_birth_date",
+      "type": "date",
+      "text": {
+        "en": "Date of birth",
+        "fi": "Syntymäaika",
+        "sv": "Födelsedatum",
+        "et": "Sünnikuupäev"
+      },
+      "why_we_ask": {
+        "en": "You must be 18 or older to sign a lease."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "consumer",
+            "sole_trader"
+          ]
+        }
+      ],
+      "blocks_application_when": [
+        {
+          "rule": "age_under",
+          "value": 18
+        }
+      ]
+    },
+    {
+      "id": "q_email",
+      "type": "email",
+      "text": {
+        "en": "Email address",
+        "fi": "Sähköpostiosoite",
+        "sv": "E-postadress",
+        "et": "E-posti aadress"
+      },
+      "why_we_ask": {
+        "en": "Invoices and the contract are sent here."
+      },
+      "ask_when": []
+    },
+    {
+      "id": "q_country",
+      "type": "choice",
+      "text": {
+        "en": "Country of residence",
+        "fi": "Asuinmaa",
+        "sv": "Bosättningsland",
+        "et": "Elukoha riik"
+      },
+      "why_we_ask": {
+        "en": "We can lease only to residents of Finland, Sweden and Estonia."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "consumer",
+            "sole_trader"
+          ]
+        }
+      ],
+      "options": [
+        "FI",
+        "SE",
+        "EE",
+        "other"
+      ],
+      "blocks_application_when": [
+        {
+          "rule": "answer_in",
+          "value": [
+            "other"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q_employment",
+      "type": "choice",
+      "text": {
+        "en": "Employment status",
+        "fi": "Työtilanne",
+        "sv": "Sysselsättning",
+        "et": "Tööalane staatus"
+      },
+      "why_we_ask": {
+        "en": "Helps us check the rent fits your budget."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "consumer"
+          ]
+        }
+      ],
+      "options": [
+        "employed",
+        "self_employed",
+        "student",
+        "retired",
+        "unemployed"
+      ]
+    },
+    {
+      "id": "q_monthly_income",
+      "type": "money",
+      "text": {
+        "en": "Monthly net income (EUR)",
+        "fi": "Kuukausittaiset nettotulot (EUR)",
+        "sv": "Månatlig nettoinkomst (EUR)",
+        "et": "Igakuine netosissetulek (EUR)"
+      },
+      "why_we_ask": {
+        "en": "Rent may be at most 30 % of net income for consumers."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "consumer"
+          ]
+        },
+        {
+          "field": "financed_amount_cents",
+          "op": "gte",
+          "value": 200000
+        }
+      ]
+    },
+    {
+      "id": "q_business_id",
+      "type": "text",
+      "text": {
+        "en": "Business ID (Y-tunnus)",
+        "fi": "Y-tunnus",
+        "sv": "FO-nummer",
+        "et": "Ettevõtte registrikood (FI Y-tunnus)"
+      },
+      "why_we_ask": {
+        "en": "Identifies the business that signs the contract."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "sole_trader",
+            "company"
+          ]
+        }
+      ],
+      "validation": {
+        "format": "finnish_business_id",
+        "hint": "1234567-8 with a valid check digit"
+      }
+    },
+    {
+      "id": "q_company_name",
+      "type": "text",
+      "text": {
+        "en": "Company name",
+        "fi": "Yrityksen nimi",
+        "sv": "Företagets namn",
+        "et": "Ettevõtte nimi"
+      },
+      "why_we_ask": {
+        "en": "Printed on the contract and invoices."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "company"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q_can_sign",
+      "type": "choice",
+      "text": {
+        "en": "Can you sign contracts for the company?",
+        "fi": "Voitko allekirjoittaa sopimuksia yrityksen puolesta?",
+        "sv": "Kan du teckna avtal för företaget?",
+        "et": "Kas saad ettevõtte nimel lepinguid allkirjastada?"
+      },
+      "why_we_ask": {
+        "en": "Only an authorised signatory can make the contract binding."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "company"
+          ]
+        }
+      ],
+      "options": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "id": "q_signatory_email",
+      "type": "email",
+      "text": {
+        "en": "Email of the person who can sign",
+        "fi": "Allekirjoitusoikeuden omaavan henkilön sähköposti",
+        "sv": "E-post till den som får teckna",
+        "et": "Allkirjaõigusliku isiku e-post"
+      },
+      "why_we_ask": {
+        "en": "We send the contract to them for signing."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "company"
+          ]
+        },
+        {
+          "field": "answers.q_can_sign",
+          "op": "in",
+          "value": [
+            "no"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q_vat_registered",
+      "type": "choice",
+      "text": {
+        "en": "Is the business VAT registered?",
+        "fi": "Onko yritys arvonlisäverovelvollinen?",
+        "sv": "Är företaget momsregistrerat?",
+        "et": "Kas ettevõte on käibemaksukohustuslane?"
+      },
+      "why_we_ask": {
+        "en": "Changes how we show prices: with or without VAT."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "sole_trader",
+            "company"
+          ]
+        }
+      ],
+      "options": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "id": "q_usage_purpose",
+      "type": "choice",
+      "text": {
+        "en": "How will you use the e-bike?",
+        "fi": "Mihin käytät sähköpyörää?",
+        "sv": "Hur ska du använda elcykeln?",
+        "et": "Milleks elektrijalgratast kasutad?"
+      },
+      "why_we_ask": {
+        "en": "Delivery use wears the bike faster and changes the end-of-term check."
+      },
+      "ask_when": [
+        {
+          "field": "category",
+          "op": "in",
+          "value": [
+            "e_bike"
+          ]
+        }
+      ],
+      "options": [
+        "commuting",
+        "leisure",
+        "delivery"
+      ]
+    },
+    {
+      "id": "q_farm_registry",
+      "type": "text",
+      "text": {
+        "en": "Farm registry number",
+        "fi": "Tilatunnus",
+        "sv": "Gårdssignum",
+        "et": "Põllumajandusettevõtte registrinumber"
+      },
+      "why_we_ask": {
+        "en": "Farm machines are leased to registered farms or contractors."
+      },
+      "ask_when": [
+        {
+          "field": "category",
+          "op": "in",
+          "value": [
+            "farm_machine"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q_annual_revenue",
+      "type": "money",
+      "text": {
+        "en": "Annual revenue (EUR)",
+        "fi": "Liikevaihto vuodessa (EUR)",
+        "sv": "Årlig omsättning (EUR)",
+        "et": "Aastane käive (EUR)"
+      },
+      "why_we_ask": {
+        "en": "Required for leases of 50,000 EUR or more."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "company"
+          ]
+        },
+        {
+          "field": "financed_amount_cents",
+          "op": "gte",
+          "value": 5000000
+        }
+      ]
+    },
+    {
+      "id": "q_beneficial_owners",
+      "type": "list",
+      "text": {
+        "en": "Owners with more than 25 %",
+        "fi": "Yli 25 % omistajat",
+        "sv": "Ägare med mer än 25 %",
+        "et": "Üle 25 % omanikud"
+      },
+      "why_we_ask": {
+        "en": "Anti-money-laundering law requires us to know who owns the business."
+      },
+      "ask_when": [
+        {
+          "field": "customer_type",
+          "op": "in",
+          "value": [
+            "company"
+          ]
+        },
+        {
+          "field": "financed_amount_cents",
+          "op": "gte",
+          "value": 5000000
+        }
+      ]
+    },
+    {
+      "id": "q_pep",
+      "type": "choice",
+      "text": {
+        "en": "Are you (or an owner) a politically exposed person?",
+        "fi": "Oletko sinä (tai omistaja) poliittisesti vaikutusvaltainen henkilö?",
+        "sv": "Är du (eller en ägare) en person i politiskt utsatt ställning?",
+        "et": "Kas sina (või omanik) oled riikliku taustaga isik?"
+      },
+      "why_we_ask": {
+        "en": "Required by anti-money-laundering law for leases of 10,000 EUR or more."
+      },
+      "ask_when": [
+        {
+          "field": "financed_amount_cents",
+          "op": "gte",
+          "value": 1000000
+        }
+      ],
+      "options": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "id": "q_pep_details",
+      "type": "text",
+      "text": {
+        "en": "Which position, and since when?",
+        "fi": "Mikä asema ja mistä lähtien?",
+        "sv": "Vilken position och sedan när?",
+        "et": "Milline ametikoht ja alates millal?"
+      },
+      "why_we_ask": {
+        "en": "A politically exposed person needs a manual check by a person, not a rule."
+      },
+      "ask_when": [
+        {
+          "field": "financed_amount_cents",
+          "op": "gte",
+          "value": 1000000
+        },
+        {
+          "field": "answers.q_pep",
+          "op": "in",
+          "value": [
+            "yes"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "how_to_use": "Market value of a used item = net list price at its first lease x curve(age in months) x condition multiplier x usage adjustment. Points are [age_months, percent]; interpolate between them (linear is fine, your choice). Beyond the last point, hold the last value.",
+  "curves": {
+    "e_bike": [
+      [
+        0,
+        100
+      ],
+      [
+        6,
+        82
+      ],
+      [
+        12,
+        70
+      ],
+      [
+        24,
+        52
+      ],
+      [
+        36,
+        40
+      ],
+      [
+        48,
+        31
+      ],
+      [
+        60,
+        25
+      ]
+    ],
+    "laptop": [
+      [
+        0,
+        100
+      ],
+      [
+        6,
+        75
+      ],
+      [
+        12,
+        60
+      ],
+      [
+        24,
+        40
+      ],
+      [
+        36,
+        26
+      ],
+      [
+        48,
+        18
+      ],
+      [
+        60,
+        12
+      ]
+    ],
+    "farm_machine": [
+      [
+        0,
+        100
+      ],
+      [
+        12,
+        85
+      ],
+      [
+        24,
+        74
+      ],
+      [
+        36,
+        65
+      ],
+      [
+        48,
+        58
+      ],
+      [
+        60,
+        52
+      ],
+      [
+        96,
+        38
+      ]
+    ]
+  },
+  "condition_multiplier": {
+    "new": 1.0,
+    "like_new": 0.95,
+    "good": 0.85,
+    "fair": 0.65,
+    "poor": 0.4
+  },
+  "usage_adjustment": {
+    "e_bike": {
+      "unit": "km",
+      "percent_per_step": -2.0,
+      "step": 1000,
+      "max_total_percent": -20.0
+    },
+    "laptop": {
+      "unit": "battery_cycles",
+      "percent_per_step": -1.5,
+      "step": 100,
+      "max_total_percent": -15.0
+    },
+    "farm_machine": {
+      "unit": "engine_hours",
+      "percent_per_step": -3.0,
+      "step": 500,
+      "max_total_percent": -30.0
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "note": "FICTIONAL indicative factors for the hackathon. kg CO2e.",
+  "manufacturing_new_kg": {
+    "e_bike": 165,
+    "laptop": 330,
+    "farm_machine": 18000
+  },
+  "refurbishment_share_of_new": 0.12,
+  "avoided_by_reuse_formula_hint": "A second life avoids roughly manufacturing_new_kg x (1 - refurbishment_share_of_new). Is that fair if the old item was almost worn out? You decide and explain.",
+  "e_bike_avoided_car_km_kg_per_km": 0.15
+}

@@ -1,0 +1,22 @@
+{
+  "country": "FI",
+  "note": "General VAT rate. The 2027 change is FICTIONAL and exists only for this hackathon.",
+  "rates": [
+    {
+      "rate_percent": 24.0,
+      "valid_from": "2013-01-01",
+      "valid_to": "2024-08-31"
+    },
+    {
+      "rate_percent": 25.5,
+      "valid_from": "2024-09-01",
+      "valid_to": "2026-12-31"
+    },
+    {
+      "rate_percent": 26.0,
+      "valid_from": "2027-01-01",
+      "valid_to": null,
+      "fictional": true
+    }
+  ]
+}

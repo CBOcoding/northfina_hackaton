@@ -1,0 +1,63 @@
+{
+  "note": "Net euro cents. A returned item must reach at least 'good' to be leased again, unless a waiting-list entry accepts 'fair'.",
+  "e_bike": {
+    "condition_upgrades": {
+      "poor->fair": 15000,
+      "fair->good": 12000,
+      "good->like_new": 8000
+    },
+    "fixed": [
+      {
+        "id": "battery_replacement",
+        "cost_cents": 35000,
+        "when": "usage.value >= 15000 km",
+        "resets_usage": true
+      },
+      {
+        "id": "safety_inspection",
+        "cost_cents": 4500,
+        "when": "always"
+      }
+    ]
+  },
+  "laptop": {
+    "condition_upgrades": {
+      "poor->fair": 9000,
+      "fair->good": 7500,
+      "good->like_new": 5000
+    },
+    "fixed": [
+      {
+        "id": "certified_data_wipe",
+        "cost_cents": 2500,
+        "when": "always",
+        "mandatory_before_next_lease": true
+      },
+      {
+        "id": "battery_replacement",
+        "cost_cents": 9000,
+        "when": "usage.value >= 500 battery_cycles",
+        "resets_usage": true
+      }
+    ]
+  },
+  "farm_machine": {
+    "condition_upgrades": {
+      "poor->fair": 600000,
+      "fair->good": 450000,
+      "good->like_new": 300000
+    },
+    "fixed": [
+      {
+        "id": "major_service",
+        "cost_cents": 150000,
+        "when": "per started 1000 engine_hours since last service"
+      },
+      {
+        "id": "safety_inspection",
+        "cost_cents": 40000,
+        "when": "always"
+      }
+    ]
+  }
+}
