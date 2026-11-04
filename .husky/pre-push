@@ -1,0 +1,6 @@
+# Runs before every push: the fast part of what CI checks.
+set -e
+
+echo "🧪 Type check, tests, file size and no-AI checks before push…"
+npm run typecheck && npm test && npm run check:file-size && npm run check:no-ai
+echo "✅ Ready to push"

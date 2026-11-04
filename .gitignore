@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# tests
+coverage/
+
+# Prisma: generated client and local SQLite databases
+src/generated/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# secrets
+.env
+.env*.local
+
+# misc
+.DS_Store
+npm-debug.log*
+.vercel

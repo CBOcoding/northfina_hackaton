@@ -1,0 +1,81 @@
+{
+  "name": "lease-loop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lease Loop hackathon starter: a walking skeleton for a circular-economy leasing app.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check:file-size": "node scripts/check-file-size.mjs",
+    "check:no-ai": "node scripts/check-no-ai.mjs",
+    "check:all": "npm run format:check && npm run lint && npm run typecheck && npm run check:file-size && npm run check:no-ai && npm run test:coverage && npm run build",
+    "db:setup": "node scripts/ensure-env.mjs && prisma generate && prisma migrate deploy && prisma db seed",
+    "db:seed": "prisma db seed",
+    "db:reset": "node scripts/ensure-env.mjs && prisma migrate reset --force && prisma db seed",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate",
+    "prepare": "node .husky/install.mjs"
+  },
+  "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "next": "^16.4.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.4.5",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.1.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "prisma": "^7.10.1",
+    "secretlint": "^13.1.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs}": [
+      "prettier --write",
+      "eslint --max-warnings 0 --no-warn-ignored"
+    ],
+    "*.{jsx,cjs,json,css,md,yml,yaml}": "prettier --write"
+  },
+  "allowScripts": {
+    "better-sqlite3": true,
+    "prisma": true,
+    "@prisma/engines": true,
+    "esbuild": true,
+    "fsevents": false
+  }
+}

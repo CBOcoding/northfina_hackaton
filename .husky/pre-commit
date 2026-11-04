@@ -1,0 +1,21 @@
+# Runs before every commit. Fix what it reports, `git add` again and commit again.
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=d)
+if [ -z "$staged" ]; then
+  echo "ℹ️  Nothing staged, skipping pre-commit checks."
+  exit 0
+fi
+
+echo "🔐 Scanning staged files for secrets…"
+if ! git diff --cached --name-only --diff-filter=d -z | xargs -0 npx --no -- secretlint --maskSecrets; then
+  echo ""
+  echo "❌ A staged file looks like it contains a secret (key, token or password)."
+  echo "   Remove it from the file, put it in .env (which is never committed) and try again."
+  exit 1
+fi
+
+echo "🎨 Formatting and linting staged files…"
+npx --no -- lint-staged
+
+echo "✅ All pre-commit checks passed"

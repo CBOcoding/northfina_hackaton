@@ -1,0 +1,5 @@
+# Checks the commit message format: `type(optional-scope): subject`,
+# e.g. `feat(pricing): add factor lookup`. See commitlint.config.mjs.
+set -e
+
+npx --no -- commitlint --edit "$1"
