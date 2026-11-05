@@ -40,42 +40,51 @@ function parseArgs(argv) {
   return options;
 }
 
-function listPullRequests(repo) {
-  const fields = [
-    'number',
-    'title',
-    'url',
-    'state',
-    'author',
-    'createdAt',
-    'headRefName',
-    'headRefOid',
-    'headRepositoryOwner',
-    'commits',
-  ].join(',');
-  const json = execFileSync(
-    'gh',
-    ['pr', 'list', '--repo', repo, '--state', 'all', '--limit', '200', '--json', fields],
-    { encoding: 'utf8' }
-  );
-  return JSON.parse(json);
+// REST with a jq projection: GraphQL `gh pr list --json commits` hits GitHub's
+// node limit, and full REST objects (with PR bodies) are needlessly large.
+// Each jq filter prints one JSON value per line.
+function ghApi(path, jq) {
+  const out = execFileSync('gh', ['api', '--paginate', '--jq', `(${jq}) | tojson`, path], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return out
+    .split('\n')
+    .filter((line) => line.trim() !== '')
+    .map((line) => JSON.parse(line));
 }
 
-function toSubmission(pr, deadlineMs) {
-  const lastCommit = pr.commits.at(-1);
+const PR_FIELDS =
+  '.[] | {number, title, url: .html_url, state, merged_at, created_at, ' +
+  'opened_by: .user.login, fork_owner: .head.repo.owner.login, ' +
+  'branch: .head.ref, head_sha: .head.sha}';
+
+function listPullRequests(repo) {
+  return ghApi(`repos/${repo}/pulls?state=all&per_page=100`, PR_FIELDS);
+}
+
+function headCommitDate(repo, sha) {
+  return ghApi(`repos/${repo}/commits/${sha}`, '.commit.committer.date')[0] ?? null;
+}
+
+function commitCount(repo, number) {
+  return ghApi(`repos/${repo}/pulls/${number}`, '.commits')[0] ?? null;
+}
+
+function toSubmission(repo, pr, deadlineMs) {
   return {
     number: pr.number,
     title: pr.title,
     url: pr.url,
-    state: pr.state,
-    opened_by: pr.author?.login ?? null,
-    fork_owner: pr.headRepositoryOwner?.login ?? null,
-    branch: pr.headRefName,
-    head_sha: pr.headRefOid,
-    commit_count: pr.commits.length,
-    last_commit_date: lastCommit?.committedDate ?? null,
-    created_at: pr.createdAt,
-    late: Date.parse(pr.createdAt) > deadlineMs,
+    state: pr.merged_at ? 'merged' : pr.state,
+    opened_by: pr.opened_by ?? null,
+    fork_owner: pr.fork_owner ?? null,
+    branch: pr.branch,
+    head_sha: pr.head_sha,
+    commit_count: commitCount(repo, pr.number),
+    head_commit_date: headCommitDate(repo, pr.head_sha),
+    created_at: pr.created_at,
+    late: Date.parse(pr.created_at) > deadlineMs,
   };
 }
 
@@ -96,7 +105,7 @@ function main() {
   const options = parseArgs(process.argv.slice(2));
   const deadlineMs = Date.parse(options.deadline);
   const submissions = listPullRequests(options.repo)
-    .map((pr) => toSubmission(pr, deadlineMs))
+    .map((pr) => toSubmission(options.repo, pr, deadlineMs))
     .sort((a, b) => a.number - b.number);
 
   if (options.fetch) {
