@@ -2,8 +2,9 @@
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { AssetCard } from '@/components/asset-card';
-import { loadPriceLists } from '@/data/load';
+import { loadCoefficientTable, loadPriceLists } from '@/data/load';
 import { assetCategorySchema } from '@/data/schemas';
+import { leaseOffer } from '@/domain/catalogue';
 import { listPriceOn } from '@/domain/price-list';
 import { formatIsoDate } from '@/i18n/format';
 import { getT } from '@/i18n/get-t';
@@ -21,7 +22,11 @@ export default async function CataloguePage({ params }: PageProps<'/[locale]'>) 
 
   const t = getT(locale);
   const today = todayIso(); // the page decides what "today" is; domain code never reads the clock
-  const [assets, priceLists] = await Promise.all([listAssets(db), loadPriceLists()]);
+  const [assets, priceLists, table] = await Promise.all([
+    listAssets(db),
+    loadPriceLists(),
+    loadCoefficientTable(),
+  ]);
   const groups = assetCategorySchema.options
     .map((category) => ({ category, assets: assets.filter((a) => a.category === category) }))
     .filter((group) => group.assets.length > 0);
@@ -61,16 +66,20 @@ export default async function CataloguePage({ params }: PageProps<'/[locale]'>) 
             </p>
           </div>
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {group.assets.map((asset) => (
-              <li key={asset.id}>
-                <AssetCard
-                  asset={asset}
-                  price={listPriceOn(priceLists, asset.id, today)}
-                  locale={locale}
-                  t={t}
-                />
-              </li>
-            ))}
+            {group.assets.map((asset) => {
+              const price = listPriceOn(priceLists, asset.id, today);
+              return (
+                <li key={asset.id}>
+                  <AssetCard
+                    asset={asset}
+                    price={price}
+                    offer={price.ok ? leaseOffer(price.priceCents, table) : null}
+                    locale={locale}
+                    t={t}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}
