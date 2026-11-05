@@ -102,7 +102,7 @@ On Friday the judges run these against your app. Make sure the ones related to y
 1. **Happy path.** Aino (`cust-aino`) leases `ebike-003`, 36 months, no down payment, signed 5 Nov 2026. Show the monthly rent (net and with VAT), the first 3 invoices and the total cost.
 2. **The price lock.** A quote for `laptop-004` is made on Thu 5 Nov 2026 (price list v1). The customer signs on Fri 6 Nov, when price list v2 is live and laptops are 8 % cheaper. Which price is locked, and does your app say why?
 3. **Tax is not price.** `ebike-001`, 24 months, started 15 Sep 2026. Show the December 2026 and January 2027 invoices.
-4. **Calendar traps.** `laptop-001`, 24 months, starting 31 Jan 2026. When are the February 2026 and February 2028 invoices due?
+4. **Calendar traps.** `laptop-001`, 36 months, starting 31 Jan 2026. When are the February 2026 and February 2028 invoices due?
 5. **Too young.** Mikko (`cust-mikko`, 17) applies for `laptop-008`. What does he see? Be kind and clear.
 6. **Who can sign?** Norvi Logistics (`cust-norvi`) applies for 4 × `ebike-004`. The applicant is not allowed to sign for the company.
 7. **Big ticket.** Haapalan Tila (`cust-haapala`) leases `farm-002` (€145,000) for 48 months with €20,000 down. Which questions appear, and why does it end in manual review?
