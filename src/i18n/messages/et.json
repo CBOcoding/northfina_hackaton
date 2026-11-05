@@ -129,5 +129,14 @@
   "invoice.status": "Olek",
   "invoice.status.invoiced": "Arveldatud",
   "invoice.status.due": "Tähtaeg nüüd",
-  "invoice.status.upcoming": "Tulemas"
+  "invoice.status.upcoming": "Tulemas",
+  "nav.main": "Peamenüü",
+  "nav.contracts": "Lepingud",
+  "earlyExit.title": "Lõpetada pärast kuud {month}?",
+  "earlyExit.rule": "Meie reegel: maksad selle, mida leping täna veel võlgneb, ehk järelejäänud rendid ja väljaostu, ilma intressita kuude eest, mida ei tule. Varajane lõpetamine ei maksa kunagi rohkem kui jätkamine.",
+  "earlyExit.keep": "Jäta endale",
+  "earlyExit.keepDetail": "{net} ilma käibemaksuta: {rents} järelejäänud renti ja väljaost ({undiscounted}), miinus {saved} intressi, mida sa enam ei võlgne.",
+  "earlyExit.return": "Tagasta",
+  "earlyExit.returnDetail": "Arvestame maha selle tänase turuväärtuse {value}. Maksad {net} ilma käibemaksuta, mitte kunagi alla 0.",
+  "earlyExit.condition": "Seisukord tagastamisel"
 }
