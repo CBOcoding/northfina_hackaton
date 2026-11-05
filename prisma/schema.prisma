@@ -29,6 +29,9 @@ model Asset {
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
+  application_items ApplicationAsset[]
+  contract_items    ContractAsset[]
+
   @@index([category])
 }
 
@@ -45,4 +48,116 @@ model AuditLog {
 
   @@index([entity_type, entity_id])
   @@index([created_at])
+}
+
+// ---------------------------------------------------------------------------
+// Leasing. Business dates (quoted_on, signed_on, due_date, ...) are ISO strings
+// `YYYY-MM-DD`, the same format the domain functions take, so no time zone can shift a day.
+// Money is integer euro cents; factors are integer millionths (0.027584 → 27584).
+// ---------------------------------------------------------------------------
+
+// A customer's request: the quote they saw, their answers and the decision.
+model Application {
+  id                 String   @id @default(cuid())
+  customer_id        String // id from data/customers.json
+  quoted_on          String // the day the price was quoted
+  price_list_version Int // price list valid on quoted_on
+  list_price_cents   Int // sum of the items' net list prices on quoted_on
+  down_payment_cents Int
+  term_months        Int // 12 | 24 | 36 | 48
+  answers_json       String   @default("{}") // { "<question id>": answer }
+  decision           String   @default("pending") // pending | approved | rejected | manual_review
+  reasons_json       String   @default("[]") // eligibility reasons shown to the customer
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  items    ApplicationAsset[]
+  contract Contract?
+
+  @@index([customer_id])
+}
+
+// One item in an application. More than one row = a fleet (e.g. 4 × ebike-004).
+model ApplicationAsset {
+  application_id   String
+  asset_id         String
+  list_price_cents Int // net list price on quoted_on
+
+  application Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  asset       Asset       @relation(fields: [asset_id], references: [id])
+
+  @@id([application_id, asset_id])
+}
+
+// The signed lease. Everything that sets the price is copied here at signing and never
+// recomputed from price lists afterwards: this row IS the locked price.
+model Contract {
+  id                 String   @id @default(cuid())
+  number             String   @unique // ML-2026-0001
+  application_id     String   @unique
+  customer_id        String
+  signed_on          String
+  start_date         String // first invoice is due on this day
+  price_list_version Int // the version whose price was locked
+  list_price_cents   Int
+  down_payment_cents Int
+  financed_cents     Int
+  band               String // A | B | C | D
+  factor_micro       Int // monthly factor × 1 000 000
+  term_months        Int
+  monthly_net_cents  Int // locked rent without VAT
+  buyout_percent     Int
+  buyout_net_cents   Int
+  lock_reason        String // why this price was locked (shown to the customer)
+  signed_by          String // who signed (the authorised signatory for companies)
+  status             String   @default("active") // active | bought | returned | passed_on | exited_early
+  ended_on           String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  application Application     @relation(fields: [application_id], references: [id])
+  items       ContractAsset[]
+  invoices    Invoice[]
+
+  @@index([customer_id])
+  @@index([status])
+}
+
+// An item under a contract, and which of its lives this contract is (the passport).
+model ContractAsset {
+  contract_id      String
+  asset_id         String
+  list_price_cents Int // locked net list price of this item
+  life_number      Int // 1 = first lease, 2 = second life, ...
+
+  contract Contract @relation(fields: [contract_id], references: [id], onDelete: Cascade)
+  asset    Asset    @relation(fields: [asset_id], references: [id])
+
+  @@id([contract_id, asset_id])
+  @@index([asset_id])
+}
+
+// One invoice. VAT is charged at the rate valid on due_date, so the gross amount can
+// change during a contract while monthly_net_cents stays locked.
+model Invoice {
+  id           Int      @id @default(autoincrement())
+  contract_id  String
+  seq          Int // 1..term for rent; after the term for buyout / early exit
+  number       String   @unique // ML-2026-0001-001
+  kind         String // rent | buyout | early_exit
+  period_start String?
+  period_end   String?
+  due_date     String
+  net_cents    Int
+  vat_rate_bp  Int // 2550 = 25.5 %
+  vat_cents    Int
+  gross_cents  Int
+  status       String   @default("issued") // issued | paid
+  paid_on      String?
+  created_at   DateTime @default(now())
+
+  contract Contract @relation(fields: [contract_id], references: [id], onDelete: Cascade)
+
+  @@unique([contract_id, seq])
+  @@index([due_date])
 }
