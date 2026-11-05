@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   addMonthsClamped,
   dayBefore,
+  daysBetween,
   daysInMonth,
   formatIsoDate,
   isLeapYear,
   parseIsoDate,
+  toEpochDay,
 } from './calendar';
 
 describe('isLeapYear and daysInMonth', () => {
@@ -92,5 +94,30 @@ describe('dayBefore', () => {
     expect(dayBefore('2026-03-01')).toBe('2026-02-28');
     expect(dayBefore('2028-03-01')).toBe('2028-02-29');
     expect(dayBefore('2027-01-01')).toBe('2026-12-31');
+  });
+});
+
+describe('toEpochDay and daysBetween', () => {
+  it('counts from 1970-01-01', () => {
+    expect(toEpochDay('1970-01-01')).toBe(0);
+    expect(toEpochDay('1969-12-31')).toBe(-1);
+    expect(toEpochDay('2000-03-01')).toBe(11_017);
+  });
+
+  it('counts days across months, leap days and years', () => {
+    expect(daysBetween('2026-11-05', '2026-11-06')).toBe(1);
+    expect(daysBetween('2028-02-28', '2028-03-01')).toBe(2);
+    expect(daysBetween('2026-01-01', '2027-01-01')).toBe(365);
+    expect(daysBetween('2026-11-06', '2026-11-05')).toBe(-1);
+  });
+
+  it('agrees with dayBefore day by day across leap years', () => {
+    let iso = '2029-01-01';
+    for (let i = 0; i < 1_500; i++) {
+      const previous = dayBefore(iso);
+      expect(daysBetween(previous, iso)).toBe(1);
+      iso = previous;
+    }
+    expect(iso).toBe('2024-11-23');
   });
 });

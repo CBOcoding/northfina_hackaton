@@ -67,3 +67,23 @@ export function dayBefore(iso: IsoDate): IsoDate {
     return formatIsoDate({ year, month: month - 1, day: daysInMonth(year, month - 1) });
   return formatIsoDate({ year: year - 1, month: 12, day: 31 });
 }
+
+/**
+ * Days since 1970-01-01 for an ISO date (negative before). Pure arithmetic on the
+ * Gregorian calendar, so no Date object and no time zone can shift the answer.
+ */
+export function toEpochDay(iso: IsoDate): number {
+  const { year, month, day } = parseIsoDate(iso);
+  const y = month <= 2 ? year - 1 : year;
+  const era = Math.floor(y / 400);
+  const yearOfEra = y - era * 400;
+  const dayOfYear = Math.floor((153 * (month + (month > 2 ? -3 : 9)) + 2) / 5) + day - 1;
+  const dayOfEra =
+    yearOfEra * 365 + Math.floor(yearOfEra / 4) - Math.floor(yearOfEra / 100) + dayOfYear;
+  return era * 146_097 + dayOfEra - 719_468;
+}
+
+/** Whole days from `from` to `to`: 2026-11-05 → 2026-11-06 is 1. Negative if `to` is earlier. */
+export function daysBetween(from: IsoDate, to: IsoDate): number {
+  return toEpochDay(to) - toEpochDay(from);
+}
