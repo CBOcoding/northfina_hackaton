@@ -129,5 +129,14 @@
   "invoice.status": "Status",
   "invoice.status.invoiced": "Invoiced",
   "invoice.status.due": "Due now",
-  "invoice.status.upcoming": "Upcoming"
+  "invoice.status.upcoming": "Upcoming",
+  "nav.main": "Main",
+  "nav.contracts": "Contracts",
+  "earlyExit.title": "Leave after month {month}?",
+  "earlyExit.rule": "Our rule: you pay what the lease still owes today, the rents left and the buyout, without the interest for months that won't happen. Leaving early never costs more than staying.",
+  "earlyExit.keep": "Keep it",
+  "earlyExit.keepDetail": "{net} without VAT: {rents} rents left and the buyout ({undiscounted}), minus {saved} of interest you no longer owe.",
+  "earlyExit.return": "Give it back",
+  "earlyExit.returnDetail": "We credit its market value today, {value}. You pay {net} without VAT, never less than 0.",
+  "earlyExit.condition": "Condition at return"
 }

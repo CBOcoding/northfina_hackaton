@@ -43,7 +43,7 @@ const aino: SignLeaseInput = {
   actor: 'test',
   customerId: 'cust-aino',
   signedBy: 'Aino Virtanen',
-  assetIds: ['ebike-003'],
+  items: [{ assetId: 'ebike-003' }],
   quotedOn: '2026-11-05',
   signedOn: '2026-11-05',
   downPaymentCents: 0,
@@ -90,7 +90,7 @@ describe('signLease: card 1, Aino', () => {
       entity_id: 'ML-2026-0001',
     });
     expect(JSON.parse(audit[0]?.details_json ?? '{}')).toMatchObject({
-      assets: ['ebike-003'],
+      items: [{ assetId: 'ebike-003', quantity: 1 }],
       invoices: 36,
     });
     expect(await db.application.findFirst()).toMatchObject({
@@ -104,7 +104,7 @@ describe('signLease: card 1, Aino', () => {
 
   it('numbers contracts per year', async () => {
     await sign();
-    const second = await sign({ assetIds: ['ebike-012'] });
+    const second = await sign({ items: [{ assetId: 'ebike-012' }] });
     expect(second.stored.contract.number).toBe('ML-2026-0002');
     expect((await listContracts(db)).map((c) => c.number)).toEqual([
       'ML-2026-0002',
@@ -115,7 +115,10 @@ describe('signLease: card 1, Aino', () => {
 
 describe('signLease: card 2, the price lock', () => {
   it('quoted Thursday on v1, signed Friday on v2: locks 8857/month and says why', async () => {
-    const { stored, lock } = await sign({ assetIds: ['laptop-004'], signedOn: '2026-11-06' });
+    const { stored, lock } = await sign({
+      items: [{ assetId: 'laptop-004' }],
+      signedOn: '2026-11-06',
+    });
     expect(lock.reason).toBe('price_dropped_since_quote');
     expect(stored.contract).toMatchObject({
       priceListVersion: 2,
@@ -127,10 +130,10 @@ describe('signLease: card 2, the price lock', () => {
 
 describe('signLease: refusals store nothing', () => {
   it.each([
-    [{ assetIds: ['ebike-009'] }, 'asset_not_available'],
-    [{ assetIds: ['nope-001'] }, 'asset_not_found'],
-    [{ assetIds: [] }, 'no_items'],
-    [{ assetIds: ['ebike-010'] }, 'below_minimum'],
+    [{ items: [{ assetId: 'ebike-009' }] }, 'asset_not_available'],
+    [{ items: [{ assetId: 'nope-001' }] }, 'asset_not_found'],
+    [{ items: [] }, 'no_items'],
+    [{ items: [{ assetId: 'ebike-010' }] }, 'below_minimum'],
     [{ termMonths: 18 }, 'unknown_term'],
     [{ signedOn: '2026-11-04' }, 'signed_before_quote'],
     [{ quotedOn: '2025-11-05', signedOn: '2025-11-05' }, 'no_price_on_date'],
@@ -167,7 +170,11 @@ describe('signLease: with an application from the question flow', () => {
     await sign({ applicationId: app.id });
     expect(await db.application.count()).toBe(1);
     expect(
-      await signLease(db, data, { ...aino, assetIds: ['ebike-012'], applicationId: app.id })
+      await signLease(db, data, {
+        ...aino,
+        items: [{ assetId: 'ebike-012' }],
+        applicationId: app.id,
+      })
     ).toEqual({
       ok: false,
       reason: 'application_already_signed',
@@ -183,13 +190,47 @@ describe('signLease: with an application from the question flow', () => {
   });
 });
 
+describe('signLease: card 6, a fleet with a quantity', () => {
+  it('Norvi: 4 × ebike-004 is priced on 21 960 € (band C) and stores the quantity', async () => {
+    const { stored } = await sign({
+      customerId: 'cust-norvi',
+      signedBy: 'Authorised signatory, Norvi Logistics Oy',
+      items: [{ assetId: 'ebike-004', quantity: 4 }],
+    });
+    expect(stored.contract).toMatchObject({
+      listPriceCents: 2_196_000,
+      financedCents: 2_196_000,
+      band: 'C',
+      monthlyNetCents: 58_993,
+      items: [{ assetId: 'ebike-004', listPriceCents: 549_000, quantity: 4, lifeNumber: 1 }],
+    });
+    expect((await getContract(db, stored.contract.number))?.contract.items[0]?.quantity).toBe(4);
+    expect((await listContracts(db))[0]?.items).toEqual([{ assetId: 'ebike-004', quantity: 4 }]);
+  });
+
+  it('refuses a duplicate item and a quantity below 1', async () => {
+    expect(
+      await signLease(db, data, {
+        ...aino,
+        items: [{ assetId: 'ebike-003' }, { assetId: 'ebike-003' }],
+      })
+    ).toEqual({ ok: false, reason: 'duplicate_item' });
+    expect(
+      await signLease(db, data, { ...aino, items: [{ assetId: 'ebike-003', quantity: 0 }] })
+    ).toEqual({
+      ok: false,
+      reason: 'invalid_quantity',
+    });
+  });
+});
+
 describe('signLease: a small fleet', () => {
   it('prices two bikes together and stores both items with their life number', async () => {
-    const { stored } = await sign({ assetIds: ['ebike-001', 'ebike-005'] });
+    const { stored } = await sign({ items: [{ assetId: 'ebike-001' }, { assetId: 'ebike-005' }] });
     expect(stored.contract.financedCents).toBe(189_900 + 159_000);
     expect(stored.contract.items).toEqual([
-      { assetId: 'ebike-001', listPriceCents: 189_900, lifeNumber: 1 },
-      { assetId: 'ebike-005', listPriceCents: 159_000, lifeNumber: 2 },
+      { assetId: 'ebike-001', listPriceCents: 189_900, quantity: 1, lifeNumber: 1 },
+      { assetId: 'ebike-005', listPriceCents: 159_000, quantity: 1, lifeNumber: 2 },
     ]);
     expect((await getContract(db, stored.contract.number))?.contract.items).toEqual(
       stored.contract.items

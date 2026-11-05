@@ -29,7 +29,8 @@ export type SignLeaseInput = {
   actor: string;
   customerId: string;
   signedBy: string;
-  assetIds: readonly string[];
+  /** What is leased: each asset once, with how many units (a fleet). Quantity defaults to 1. */
+  items: readonly { assetId: string; quantity?: number }[];
   quotedOn: IsoDate;
   signedOn: IsoDate;
   startDate?: IsoDate;
@@ -54,6 +55,8 @@ export type SignLeaseRefusal =
   | 'application_already_signed'
   | 'no_vat_rate'
   | 'no_items'
+  | 'duplicate_item'
+  | 'invalid_quantity'
   | 'signed_before_quote'
   | 'down_payment_negative'
   | 'down_payment_not_below_price'
@@ -76,11 +79,12 @@ export async function signLease(
   data: LeaseData,
   input: SignLeaseInput
 ): Promise<SignLeaseResult> {
-  if (input.assetIds.length === 0) return { ok: false, reason: 'no_items' };
+  if (input.items.length === 0) return { ok: false, reason: 'no_items' };
+  const assetIds = input.items.map((i) => i.assetId);
+  if (new Set(assetIds).size !== assetIds.length) return { ok: false, reason: 'duplicate_item' };
 
-  const assets = await db.asset.findMany({ where: { id: { in: [...input.assetIds] } } });
-  if (assets.length !== new Set(input.assetIds).size)
-    return { ok: false, reason: 'asset_not_found' };
+  const assets = await db.asset.findMany({ where: { id: { in: assetIds } } });
+  if (assets.length !== assetIds.length) return { ok: false, reason: 'asset_not_found' };
   if (assets.some((a) => a.status !== 'available'))
     return { ok: false, reason: 'asset_not_available' };
 
@@ -96,7 +100,7 @@ export async function signLease(
   }
 
   const items: SigningItem[] = [];
-  for (const id of input.assetIds) {
+  for (const { assetId: id, quantity } of input.items) {
     const asset = assets.find((a) => a.id === id);
     const quoted = listPriceOn(data.priceLists, id, input.quotedOn);
     const signing = listPriceOn(data.priceLists, id, input.signedOn);
@@ -104,6 +108,7 @@ export async function signLease(
     items.push({
       assetId: id,
       lifeNumber: asset.previous_lives + 1,
+      quantity: quantity ?? 1,
       quotedPriceCents: quoted.priceCents,
       quotedPriceListVersion: quoted.priceListVersion,
       signingPriceCents: signing.priceCents,
@@ -143,7 +148,7 @@ export async function signLease(
       entityId: contract.number,
       details: {
         customerId: contract.customerId,
-        assets: contract.items.map((i) => i.assetId),
+        items: contract.items.map((i) => ({ assetId: i.assetId, quantity: i.quantity })),
         monthlyNetCents: contract.monthlyNetCents,
         lockReason: contract.lockReason,
         priceListVersion: contract.priceListVersion,
@@ -168,6 +173,7 @@ export async function signLease(
                 create: contract.items.map((i) => ({
                   asset_id: i.assetId,
                   list_price_cents: i.listPriceCents,
+                  quantity: i.quantity,
                 })),
               },
             },
@@ -176,7 +182,7 @@ export async function signLease(
 
       await tx.contract.create({ data: toContractRow(contract, applicationId, schedule.invoices) });
       await tx.asset.updateMany({
-        where: { id: { in: [...input.assetIds] } },
+        where: { id: { in: assetIds } },
         data: { status: 'reserved' },
       });
     }
@@ -213,6 +219,7 @@ function toContractRow(
       create: c.items.map((i) => ({
         asset: { connect: { id: i.assetId } },
         list_price_cents: i.listPriceCents,
+        quantity: i.quantity,
         life_number: i.lifeNumber,
       })),
     },
@@ -254,6 +261,7 @@ export async function getContract(
       items: row.items.map((i) => ({
         assetId: i.asset_id,
         listPriceCents: i.list_price_cents,
+        quantity: i.quantity,
         lifeNumber: i.life_number,
       })),
       listPriceCents: row.list_price_cents,
@@ -293,7 +301,7 @@ export type ContractSummary = {
   termMonths: number;
   monthlyNetCents: number;
   status: string;
-  assetIds: string[];
+  items: { assetId: string; quantity: number }[];
 };
 
 /** All contracts, newest first, for an overview page. */
@@ -309,7 +317,7 @@ export async function listContracts(db: PrismaClient): Promise<ContractSummary[]
     termMonths: r.term_months,
     monthlyNetCents: r.monthly_net_cents,
     status: r.status,
-    assetIds: r.items.map((i) => i.asset_id),
+    items: r.items.map((i) => ({ assetId: i.asset_id, quantity: i.quantity })),
   }));
 }
 

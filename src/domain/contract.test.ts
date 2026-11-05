@@ -53,7 +53,7 @@ describe('card 2: quoted on Thursday (v1), signed on Friday (v2, laptops −8 %)
       listPriceCents: 321_100,
       monthlyNetCents: 8_857,
       lockReason: 'price_dropped_since_quote',
-      items: [{ assetId: 'laptop-004', listPriceCents: 321_100, lifeNumber: 1 }],
+      items: [{ assetId: 'laptop-004', listPriceCents: 321_100, quantity: 1, lifeNumber: 1 }],
     });
   });
 });
@@ -92,6 +92,33 @@ describe('decideLockedPrice', () => {
       quotedTotalCents: 2_196_000,
       lockedTotalCents: 2_196_000,
     });
+  });
+});
+
+describe('signContract: quantity', () => {
+  it('multiplies the unit price by the quantity before choosing the band', () => {
+    const bike = {
+      ...laptop004,
+      quotedPriceCents: 549_000,
+      signingPriceCents: 549_000,
+      signingPriceListVersion: 1,
+      quantity: 4,
+    };
+    const { contract, lock } = sign({ signedOn: '2026-11-05', items: [bike] });
+    expect(lock.lockedTotalCents).toBe(2_196_000);
+    expect(contract).toMatchObject({
+      band: 'C',
+      items: [{ quantity: 4, listPriceCents: 549_000 }],
+    });
+  });
+
+  it('refuses a quantity that is not a whole number of at least 1', () => {
+    for (const quantity of [0, -1, 1.5]) {
+      expect(signContract(table, input({ items: [{ ...laptop004, quantity }] }))).toEqual({
+        ok: false,
+        reason: 'invalid_quantity',
+      });
+    }
   });
 });
 

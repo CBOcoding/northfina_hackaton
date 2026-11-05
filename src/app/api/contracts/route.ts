@@ -1,5 +1,5 @@
 // GET  /api/contracts   all contracts, newest first
-// POST /api/contracts   sign a lease. Body: { customerId, signedBy, assetIds, quotedOn,
+// POST /api/contracts   sign a lease. Body: { customerId, signedBy, items: [{ assetId, quantity? }], quotedOn,
 //                       signedOn?, startDate?, downPaymentCents, termMonths, applicationId?, actor }
 // Signing writes the contract, its invoices and an audit row in one transaction.
 import { z } from 'zod';
@@ -12,7 +12,15 @@ import { todayIso } from '@/server/today';
 const bodySchema = z.strictObject({
   customerId: z.string().trim().min(1).max(100),
   signedBy: z.string().trim().min(1).max(200),
-  assetIds: z.array(z.string().trim().min(1)).min(1).max(50),
+  items: z
+    .array(
+      z.strictObject({
+        assetId: z.string().trim().min(1),
+        quantity: z.number().int().min(1).max(500).optional(),
+      })
+    )
+    .min(1)
+    .max(50),
   quotedOn: isoDateSchema,
   signedOn: isoDateSchema.optional(),
   startDate: isoDateSchema.optional(),
