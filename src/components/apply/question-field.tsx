@@ -18,10 +18,12 @@ type Props = {
   t: Translate;
   value: AnswerValue | undefined;
   invalid: boolean;
+  /** From the verified customer record: shown, not editable. */
+  fixed?: boolean;
   onChange: (value: AnswerValue | undefined) => void;
 };
 
-export function QuestionField({ question: q, locale, t, value, invalid, onChange }: Props) {
+export function QuestionField({ question: q, locale, t, value, invalid, fixed, onChange }: Props) {
   const id = `q-${q.id}`;
   const whyId = `why-${q.id}`;
   const errorId = `err-${q.id}`;
@@ -46,6 +48,26 @@ export function QuestionField({ question: q, locale, t, value, invalid, onChange
     </>
   );
 
+  if (fixed) {
+    const shown =
+      typeof value === 'string' ? tOr(t, `apply.option.${value}`, value) : String(value);
+    return (
+      <div>
+        <p id={id} className="text-base font-semibold">
+          {text}
+        </p>
+        <p
+          aria-describedby={whyId}
+          className="mt-2 min-h-11 rounded-lg bg-stone-100 px-3 py-2 text-base dark:bg-stone-800"
+        >
+          {shown}
+        </p>
+        <p className="mt-1 text-sm text-stone-700 dark:text-stone-300">{t('apply.fromRecord')}</p>
+        {hint}
+      </div>
+    );
+  }
+
   if (q.type === 'choice') {
     return (
       <fieldset aria-describedby={describedBy} className="min-w-0">
@@ -63,6 +85,7 @@ export function QuestionField({ question: q, locale, t, value, invalid, onChange
                 value={option}
                 checked={value === option}
                 onChange={() => onChange(option)}
+                aria-invalid={invalid}
                 className="size-5 accent-emerald-700"
               />
               <span>{tOr(t, `apply.option.${option}`, option)}</span>

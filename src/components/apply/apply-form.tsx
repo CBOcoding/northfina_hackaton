@@ -2,9 +2,14 @@
 
 // The application form. All state lives here; which questions show, and which answers are
 // cleared, is computed with the domain (question-flow, application), never in the JSX.
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Customer, Question } from '@/data/schemas';
-import { answersFromCustomer, customerFromAnswers, dealFor } from '@/domain/application';
+import {
+  answersFromCustomer,
+  customerFromAnswers,
+  dealFor,
+  RECORD_QUESTION_IDS,
+} from '@/domain/application';
 import { formatEuro } from '@/domain/money';
 import {
   pruneAnswers,
@@ -109,7 +114,16 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
   const [sending, setSending] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [result, setResult] = useState<ApplyResult | null>(null);
+  const [tries, setTries] = useState(0);
   const resultRef = useRef<HTMLHeadingElement>(null);
+
+  // After the commit, so the target exists: result heading, or the first invalid field.
+  useEffect(() => {
+    if (result) resultRef.current?.focus();
+  }, [result]);
+  useEffect(() => {
+    if (tries > 0) document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [tries]);
 
   const { customer, asset } = pick(inputs.customerId, inputs.assetId);
   const qty = parseQty(inputs.qtyText);
@@ -139,8 +153,7 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
     const pruned = pruneAnswers(questions, nextDeal, nextAnswers);
     setInputs(next);
     setAnswers(pruned.answers);
-    if (!announce) setCleared([]);
-    else if (pruned.dropped.length > 0) setCleared(pruned.dropped);
+    setCleared(announce ? pruned.dropped : []);
   }
 
   const setInput = (patch: Partial<Inputs>) => change({ ...inputs, ...patch }, answers);
@@ -154,9 +167,7 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
     setApiError(null);
     if (missing.length > 0 || dealErrors) {
       setShowErrors(true);
-      requestAnimationFrame(() =>
-        document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-      );
+      setTries((n) => n + 1);
       return;
     }
     setSending(true);
@@ -179,7 +190,6 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
       } | null;
       if (body?.success && body.data?.decision && Array.isArray(body.data.reasons)) {
         setResult(body.data as ApplyResult);
-        requestAnimationFrame(() => resultRef.current?.focus());
       } else {
         // Never show the server's own message: map the stable code to our own words.
         setApiError(tOr(t, `apply.error.${body?.error?.code ?? ''}`, t('apply.error.generic')));
@@ -356,6 +366,9 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
               t={t}
               value={answers[q.id]}
               invalid={bad(missing.includes(q))}
+              fixed={
+                (RECORD_QUESTION_IDS as readonly string[]).includes(q.id) && filled(answers[q.id])
+              }
               onChange={(v) => setAnswer(q.id, v)}
             />
           ))}
