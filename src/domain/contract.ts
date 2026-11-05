@@ -27,6 +27,8 @@ export type LockReason =
 export type SigningItem = {
   assetId: string;
   lifeNumber: number;
+  /** Units of this asset (a fleet); defaults to 1. Prices below are per unit. */
+  quantity?: number;
   quotedPriceCents: number;
   quotedPriceListVersion: number;
   signingPriceCents: number;
@@ -58,7 +60,9 @@ export type LockedPrice = {
 
 export type SigningResult =
   | { ok: true; contract: ContractSnapshot; quote: Quote; lock: LockedPrice }
-  | { ok: false; reason: QuoteRefusal | 'no_items' | 'signed_before_quote' };
+  | { ok: false; reason: QuoteRefusal | 'no_items' | 'signed_before_quote' | 'invalid_quantity' };
+
+const unitsOf = (item: SigningItem) => item.quantity ?? 1;
 
 /** Decides which list price is locked, and why. Pure: no clock, the caller passes the days. */
 export function decideLockedPrice(
@@ -66,8 +70,8 @@ export function decideLockedPrice(
   signedOn: IsoDate,
   items: readonly SigningItem[]
 ): LockedPrice {
-  const quotedTotalCents = items.reduce((sum, i) => sum + i.quotedPriceCents, 0);
-  const signingTotalCents = items.reduce((sum, i) => sum + i.signingPriceCents, 0);
+  const quotedTotalCents = items.reduce((sum, i) => sum + i.quotedPriceCents * unitsOf(i), 0);
+  const signingTotalCents = items.reduce((sum, i) => sum + i.signingPriceCents * unitsOf(i), 0);
   const days = daysBetween(quotedOn, signedOn);
   const first = items[0];
   const quotedVersion = first ? first.quotedPriceListVersion : 0;
@@ -97,6 +101,9 @@ export function decideLockedPrice(
 /** Signs: locks the price, prices the lease and returns the frozen contract snapshot. */
 export function signContract(table: CoefficientTable, input: SigningInput): SigningResult {
   if (input.items.length === 0) return { ok: false, reason: 'no_items' };
+  if (input.items.some((i) => !Number.isInteger(unitsOf(i)) || unitsOf(i) < 1)) {
+    return { ok: false, reason: 'invalid_quantity' };
+  }
   if (daysBetween(input.quotedOn, input.signedOn) < 0) {
     return { ok: false, reason: 'signed_before_quote' };
   }
@@ -115,6 +122,7 @@ export function signContract(table: CoefficientTable, input: SigningInput): Sign
     Object.freeze({
       assetId: i.assetId,
       lifeNumber: i.lifeNumber,
+      quantity: unitsOf(i),
       listPriceCents: usesQuote ? i.quotedPriceCents : i.signingPriceCents,
     })
   );

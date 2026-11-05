@@ -39,7 +39,9 @@ export default async function ContractsPage({ params }: PageProps<'/[locale]/con
                 <span className="text-lg font-semibold">{nameOf(c.customerId)}</span>
                 <span className="text-sm text-stone-700 dark:text-stone-300">
                   {t('contracts.summary', {
-                    assets: c.assetIds.join(', '),
+                    assets: c.items
+                      .map((i) => (i.quantity > 1 ? `${i.quantity} × ${i.assetId}` : i.assetId))
+                      .join(', '),
                     term: c.termMonths,
                     rent: formatEuro(c.monthlyNetCents, intlLocale[locale]),
                     date: formatIsoDate(c.signedOn, locale),

@@ -21,7 +21,10 @@ export type InvoiceStatus = 'issued' | 'paid';
 /** One item under a contract. `lifeNumber` 1 = first lease, 2 = second life, ... */
 export type ContractItem = {
   assetId: string;
+  /** Net list price of ONE unit. Line total = listPriceCents × quantity. */
   listPriceCents: Cents;
+  /** Units of this asset, e.g. 4 for a fleet of 4 × ebike-004. At least 1. */
+  quantity: number;
   lifeNumber: number;
 };
 

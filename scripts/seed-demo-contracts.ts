@@ -10,7 +10,7 @@ const cards: { card: string; input: Omit<SignLeaseInput, 'actor'> }[] = [
     input: {
       customerId: 'cust-aino',
       signedBy: 'Aino Virtanen',
-      assetIds: ['ebike-003'],
+      items: [{ assetId: 'ebike-003' }],
       quotedOn: '2026-11-05',
       signedOn: '2026-11-05',
       downPaymentCents: 0,
@@ -22,7 +22,7 @@ const cards: { card: string; input: Omit<SignLeaseInput, 'actor'> }[] = [
     input: {
       customerId: 'cust-kettukoodi',
       signedBy: 'Kettu Koodi Oy',
-      assetIds: ['laptop-004'],
+      items: [{ assetId: 'laptop-004' }],
       quotedOn: '2026-11-05',
       signedOn: '2026-11-06',
       downPaymentCents: 0,
@@ -34,7 +34,7 @@ const cards: { card: string; input: Omit<SignLeaseInput, 'actor'> }[] = [
     input: {
       customerId: 'cust-pekka',
       signedBy: 'Pekka Korhonen',
-      assetIds: ['ebike-001'],
+      items: [{ assetId: 'ebike-001' }],
       quotedOn: '2026-09-15',
       signedOn: '2026-09-15',
       downPaymentCents: 0,
@@ -46,9 +46,21 @@ const cards: { card: string; input: Omit<SignLeaseInput, 'actor'> }[] = [
     input: {
       customerId: 'cust-kettukoodi',
       signedBy: 'Kettu Koodi Oy',
-      assetIds: ['laptop-001'],
+      items: [{ assetId: 'laptop-001' }],
       quotedOn: '2026-01-31',
       signedOn: '2026-01-31',
+      downPaymentCents: 0,
+      termMonths: 36,
+    },
+  },
+  {
+    card: 'Card 6: Norvi Logistics, 4 × ebike-004 signed by its authorised signatory',
+    input: {
+      customerId: 'cust-norvi',
+      signedBy: 'Authorised signatory, Norvi Logistics Oy',
+      items: [{ assetId: 'ebike-004', quantity: 4 }],
+      quotedOn: '2026-11-05',
+      signedOn: '2026-11-05',
       downPaymentCents: 0,
       termMonths: 36,
     },

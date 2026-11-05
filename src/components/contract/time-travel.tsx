@@ -10,11 +10,18 @@ import type { InvoiceLine } from '@/domain/types';
 import { getT } from '@/i18n/get-t';
 import { formatNumber } from '@/i18n/format';
 import { intlLocale, type Locale } from '@/i18n/locales';
+import { EarlyExitPanel, type ExitContext } from './early-exit-panel';
 import { InvoiceTable } from './invoice-table';
 
-type Props = { locale: Locale; invoices: InvoiceLine[]; startDate: string; initialMonth: number };
+type Props = {
+  locale: Locale;
+  invoices: InvoiceLine[];
+  startDate: string;
+  initialMonth: number;
+  exit?: ExitContext;
+};
 
-export function TimeTravel({ locale, invoices, startDate, initialMonth }: Props) {
+export function TimeTravel({ locale, invoices, startDate, initialMonth, exit }: Props) {
   const t = getT(locale);
   const sliderId = useId();
   const [month, setMonth] = useState(initialMonth);
@@ -146,6 +153,15 @@ export function TimeTravel({ locale, invoices, startDate, initialMonth }: Props)
         <p className="rounded-xl bg-sky-50 p-4 text-sky-950 dark:bg-sky-950 dark:text-sky-100">
           {t('timeTravel.monthEnd', { day: startDay })}
         </p>
+      ) : null}
+
+      {exit ? (
+        <EarlyExitPanel
+          locale={locale}
+          context={exit}
+          monthsPaid={replay.month}
+          vatRateBp={replay.current.vatRateBp}
+        />
       ) : null}
 
       <InvoiceTable locale={locale} invoices={invoices} currentMonth={replay.month} />
