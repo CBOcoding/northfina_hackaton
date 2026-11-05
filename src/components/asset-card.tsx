@@ -1,5 +1,7 @@
 // One catalogue item. A server component: it renders to HTML and ships no JavaScript.
+import Link from 'next/link';
 import type { Asset, AssetStatus } from '@/data/schemas';
+import type { LeaseOffer } from '@/domain/catalogue';
 import { formatEuro } from '@/domain/money';
 import type { ListPriceResult } from '@/domain/price-list';
 import { formatNumber } from '@/i18n/format';
@@ -27,13 +29,48 @@ const statusStyles: Record<AssetStatus, { badge: string; dot: string }> = {
 type AssetCardProps = {
   asset: Asset;
   price: ListPriceResult;
+  offer: LeaseOffer | null; // null when there is no price
   locale: Locale;
   t: Translate;
 };
 
-export function AssetCard({ asset, price, locale, t }: AssetCardProps) {
+export function AssetCard({ asset, price, offer, locale, t }: AssetCardProps) {
   const headingId = `asset-${asset.id}`;
   const status = statusStyles[asset.status];
+  const euro = (cents: number) => formatEuro(cents, intlLocale[locale]);
+
+  // Link only when the item is available and can be leased; otherwise say why, in words.
+  function renderAction() {
+    const reason =
+      asset.status === 'reserved'
+        ? t('catalogue.reasonReserved')
+        : asset.status === 'returned'
+          ? t('catalogue.reasonReturned')
+          : offer?.kind === 'too_cheap'
+            ? t('catalogue.reasonTooCheap', { amount: euro(offer.minCents) })
+            : null;
+    if (reason) return <p className="text-stone-700 dark:text-stone-300">{reason}</p>;
+    if (!offer) return null;
+    return (
+      <>
+        {offer.kind === 'needs_down_payment' ? (
+          <p className="mb-2 text-stone-700 dark:text-stone-300">
+            {t('catalogue.reasonNeedsDown', { amount: euro(offer.minDownCents) })}
+          </p>
+        ) : null}
+        <Link
+          href={`/${locale}/quote/${asset.id}`}
+          className="inline-flex min-h-11 items-center rounded-full bg-emerald-800 px-5 font-medium text-white hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
+        >
+          {t('catalogue.seeMonthlyPrice')}
+          <span className="sr-only">
+            {' '}
+            {asset.make} {asset.model}
+          </span>
+        </Link>
+      </>
+    );
+  }
 
   return (
     <article
@@ -74,9 +111,11 @@ export function AssetCard({ asset, price, locale, t }: AssetCardProps) {
           ) : null}
         </div>
         <p className="text-right text-xl font-semibold tabular-nums">
-          {price.ok ? formatEuro(price.priceCents, intlLocale[locale]) : t('asset.noPrice')}
+          {price.ok ? euro(price.priceCents) : t('asset.noPrice')}
         </p>
       </div>
+
+      <div className="mt-4 text-sm">{renderAction()}</div>
     </article>
   );
 }
