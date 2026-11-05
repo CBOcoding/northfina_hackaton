@@ -5,7 +5,11 @@ import { createTestDb } from '../../tests/helpers/test-db';
 import { seedAssets } from './assets';
 import {
   getContract,
+  getSignableApplication,
+  leaseFromApplication,
   listContracts,
+  prepareLease,
+  signApplication,
   signLease,
   type LeaseData,
   type SignLeaseInput,
@@ -235,5 +239,95 @@ describe('signLease: a small fleet', () => {
     expect((await getContract(db, stored.contract.number))?.contract.items).toEqual(
       stored.contract.items
     );
+  });
+});
+
+describe('signing an application from the question flow', () => {
+  async function approvedNorvi(decision = 'approved') {
+    return db.application.create({
+      data: {
+        customer_id: 'cust-norvi',
+        quoted_on: '2026-11-05',
+        price_list_version: 1,
+        list_price_cents: 2_196_000,
+        down_payment_cents: 0,
+        term_months: 36,
+        decision,
+        answers_json: JSON.stringify({
+          q_can_sign: 'no',
+          q_signatory_email: 'ceo@norvi.example.com',
+        }),
+        items: { create: [{ asset_id: 'ebike-004', list_price_cents: 549_000, quantity: 4 }] },
+      },
+    });
+  }
+
+  it('reads items, quantity and terms from the application, not from the browser', async () => {
+    const app = await approvedNorvi();
+    const signable = await getSignableApplication(db, app.id);
+    expect(signable).toMatchObject({
+      customerId: 'cust-norvi',
+      items: [{ assetId: 'ebike-004', quantity: 4 }],
+      answers: { q_can_sign: 'no' },
+      contractNumber: null,
+    });
+    const result = await signApplication(db, data, {
+      applicationId: app.id,
+      signedBy: 'ceo@norvi.example.com',
+      signedOn: '2026-11-05',
+      actor: 'customer',
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      stored: {
+        contract: { band: 'C', monthlyNetCents: 58_993, signedBy: 'ceo@norvi.example.com' },
+      },
+    });
+    expect((await getSignableApplication(db, app.id))?.contractNumber).toBe('ML-2026-0001');
+  });
+
+  it('the preview is exactly what gets stored, and storing nothing until signed', async () => {
+    const app = await approvedNorvi();
+    const signable = await getSignableApplication(db, app.id);
+    if (!signable) throw new Error('missing');
+    const preview = await prepareLease(
+      db,
+      data,
+      leaseFromApplication(signable, 'CEO', '2026-11-05')
+    );
+    expect(await db.contract.count()).toBe(0);
+    const signed = await signApplication(db, data, {
+      applicationId: app.id,
+      signedBy: 'CEO',
+      signedOn: '2026-11-05',
+      actor: 'customer',
+    });
+    expect(preview.ok && signed.ok && preview.contract).toEqual(
+      signed.ok && signed.stored.contract
+    );
+  });
+
+  it('refuses an unknown, a rejected or an already signed application', async () => {
+    const sign = (applicationId: string) =>
+      signApplication(db, data, {
+        applicationId,
+        signedBy: 'X',
+        signedOn: '2026-11-05',
+        actor: 'customer',
+      });
+    expect(await sign('missing')).toEqual({ ok: false, reason: 'application_not_found' });
+    expect(await getSignableApplication(db, 'missing')).toBeNull();
+    const rejected = await approvedNorvi('rejected');
+    expect(await sign(rejected.id)).toEqual({ ok: false, reason: 'application_not_approved' });
+    const ok = await approvedNorvi();
+    await sign(ok.id);
+    await db.asset.update({ where: { id: 'ebike-004' }, data: { status: 'available' } });
+    expect(await sign(ok.id)).toEqual({ ok: false, reason: 'application_already_signed' });
+  });
+
+  it('treats broken stored answers as none', async () => {
+    const app = await approvedNorvi();
+    await db.application.update({ where: { id: app.id }, data: { answers_json: '{not json' } });
+    expect((await getSignableApplication(db, app.id))?.answers).toEqual({});
   });
 });

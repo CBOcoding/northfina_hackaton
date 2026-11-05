@@ -154,7 +154,7 @@ export function QuoteCalculator({ locale, assetId, listPriceCents, vatRateBp, ta
 
         {priced ? (
           <Link
-            href={`/${locale}/apply/${assetId}?term=${termMonths}&down=${downPaymentCents}`}
+            href={`/${locale}/apply?asset=${assetId}&qty=1&term=${termMonths}&down=${downPaymentCents}`}
             className="flex min-h-12 items-center justify-center rounded-xl bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800"
           >
             {t('quote.apply')}
