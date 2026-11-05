@@ -74,11 +74,19 @@ export async function nextContractNumber(db: PrismaClient, signedOn: IsoDate): P
   return `ML-${year}-${String(count + 1).padStart(4, '0')}`;
 }
 
-export async function signLease(
+export type PreparedLease =
+  | { ok: true; contract: ContractSnapshot; lock: LockedPrice; invoices: InvoiceLine[] }
+  | { ok: false; reason: SignLeaseRefusal };
+
+/**
+ * Everything signing does except writing: checks, locked price, contract and invoices.
+ * The signing page shows this as a preview, so what the customer sees is what gets stored.
+ */
+export async function prepareLease(
   db: PrismaClient,
   data: LeaseData,
-  input: SignLeaseInput
-): Promise<SignLeaseResult> {
+  input: Omit<SignLeaseInput, 'actor' | 'answers'>
+): Promise<PreparedLease> {
   if (input.items.length === 0) return { ok: false, reason: 'no_items' };
   const assetIds = input.items.map((i) => i.assetId);
   if (new Set(assetIds).size !== assetIds.length) return { ok: false, reason: 'duplicate_item' };
@@ -138,6 +146,20 @@ export async function signLease(
     monthlyNetCents: contract.monthlyNetCents,
   });
   if (!schedule.ok) return { ok: false, reason: 'no_vat_rate' };
+  return { ok: true, contract, lock, invoices: schedule.invoices };
+}
+
+/** Signs a lease: prepares it, then stores contract, items, invoices and audit row atomically. */
+export async function signLease(
+  db: PrismaClient,
+  data: LeaseData,
+  input: SignLeaseInput
+): Promise<SignLeaseResult> {
+  const prepared = await prepareLease(db, data, input);
+  if (!prepared.ok) return prepared;
+  const { contract, lock } = prepared;
+  const schedule = { invoices: prepared.invoices };
+  const assetIds = input.items.map((i) => i.assetId);
 
   await withAudit(
     db,
@@ -329,4 +351,83 @@ export async function loadLeaseData(): Promise<LeaseData> {
     loadVatRates(),
   ]);
   return { priceLists, table, vatRates };
+}
+
+export type SignableApplication = {
+  id: string;
+  customerId: string;
+  quotedOn: IsoDate;
+  termMonths: number;
+  downPaymentCents: number;
+  decision: string;
+  answers: Record<string, unknown>;
+  items: { assetId: string; quantity: number }[];
+  /** Set when this application was already signed. */
+  contractNumber: string | null;
+};
+
+/** An application as the signing step needs it, or null. */
+export async function getSignableApplication(
+  db: PrismaClient,
+  id: string
+): Promise<SignableApplication | null> {
+  const row = await db.application.findUnique({
+    where: { id },
+    include: { items: { orderBy: { asset_id: 'asc' } }, contract: { select: { number: true } } },
+  });
+  if (!row) return null;
+  const answers = parseAnswers(row.answers_json);
+  return {
+    id: row.id,
+    customerId: row.customer_id,
+    quotedOn: row.quoted_on,
+    termMonths: row.term_months,
+    downPaymentCents: row.down_payment_cents,
+    decision: row.decision,
+    answers,
+    items: row.items.map((i) => ({ assetId: i.asset_id, quantity: i.quantity })),
+    contractNumber: row.contract?.number ?? null,
+  };
+}
+
+/** The lease an application asks for, signed on `signedOn`. Items and terms come from the application only. */
+export function leaseFromApplication(
+  application: SignableApplication,
+  signedBy: string,
+  signedOn: IsoDate
+): Omit<SignLeaseInput, 'actor'> {
+  return {
+    customerId: application.customerId,
+    signedBy,
+    items: application.items,
+    quotedOn: application.quotedOn,
+    signedOn,
+    downPaymentCents: application.downPaymentCents,
+    termMonths: application.termMonths,
+    applicationId: application.id,
+  };
+}
+
+/** Signs an approved application. The browser sends only who signs; the rest is read here. */
+export async function signApplication(
+  db: PrismaClient,
+  data: LeaseData,
+  input: { applicationId: string; signedBy: string; signedOn: IsoDate; actor: string }
+): Promise<SignLeaseResult> {
+  const application = await getSignableApplication(db, input.applicationId);
+  if (!application) return { ok: false, reason: 'application_not_found' };
+  return signLease(db, data, {
+    ...leaseFromApplication(application, input.signedBy, input.signedOn),
+    actor: input.actor,
+  });
+}
+
+/** Stored answers as an object; broken JSON counts as no answers. */
+function parseAnswers(json: string): Record<string, unknown> {
+  try {
+    const value: unknown = JSON.parse(json);
+    return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }
