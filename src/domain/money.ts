@@ -67,3 +67,17 @@ function assertCents(cents: number): void {
     throw new RangeError(`cents must be a non-negative whole number, got ${cents}`);
   }
 }
+
+/**
+ * Rounds the exact fraction `numerator / denominator` half up, for BigInt fractions that
+ * outgrow safe integers (e.g. discounting over many months). Both must be non-negative.
+ */
+export function roundHalfUpBig(numerator: bigint, denominator: bigint): number {
+  if (numerator < 0n || denominator <= 0n) {
+    throw new RangeError('numerator must be ≥ 0 and denominator > 0');
+  }
+  const result = (numerator * 2n + denominator) / (denominator * 2n);
+  if (result > BigInt(Number.MAX_SAFE_INTEGER))
+    throw new RangeError('result is not a safe integer');
+  return Number(result);
+}
