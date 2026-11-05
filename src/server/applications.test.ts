@@ -1,6 +1,8 @@
 // Runs against a real, migrated SQLite database (see tests/global-setup.ts).
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { loadAssets } from '@/data/load';
+import { loadAssets, loadCustomers } from '@/data/load';
+import type { Customer } from '@/data/schemas';
+import { answersFromCustomer } from '@/domain/application';
 import { createTestDb } from '../../tests/helpers/test-db';
 import { createApplication, type ApplicationInput } from './applications';
 import { seedAssets } from './assets';
@@ -10,9 +12,11 @@ import type { TransactionClient as TxClient } from './audit';
 const TODAY = '2026-11-05';
 let db: PrismaClient;
 let cleanup: () => Promise<void>;
+let customers: Customer[];
 
 beforeAll(async () => {
   ({ db, cleanup } = await createTestDb());
+  customers = await loadCustomers();
 });
 afterAll(async () => {
   await cleanup();
@@ -24,14 +28,25 @@ beforeEach(async () => {
   await seedAssets(db, await loadAssets());
 });
 
-const input = (over: Partial<ApplicationInput>): ApplicationInput => ({
-  customerId: 'cust-aino',
-  items: [{ assetId: 'ebike-001', quantity: 1 }],
-  termMonths: 24,
-  downPaymentCents: 0,
-  answers: {},
-  ...over,
-});
+// The answers a complete form would send: the persona's, plus the deal questions it has no fact for.
+const input = (over: Partial<ApplicationInput>): ApplicationInput => {
+  const customerId = over.customerId ?? 'cust-aino';
+  return {
+    customerId,
+    items: [{ assetId: 'ebike-001', quantity: 1 }],
+    termMonths: 24,
+    downPaymentCents: 0,
+    ...over,
+    answers: {
+      ...answersFromCustomer(customers.find((c) => c.id === customerId) ?? customers[0]!),
+      q_usage_purpose: 'commuting',
+      q_signatory_email: 'boss@example.com',
+      q_farm_registry: 'FI-1234',
+      q_pep_details: 'Municipal councillor',
+      ...over.answers,
+    },
+  };
+};
 
 async function submit(over: Partial<ApplicationInput>) {
   const r = await createApplication(db, input(over), TODAY);
@@ -95,6 +110,85 @@ describe('createApplication', () => {
     expect(JSON.parse(row.answers_json)).not.toHaveProperty('q_pep');
   });
 
+  it('D1: Sanna, ebike-004, 12 months, income from her persona (900 EUR) -> AFFORDABILITY_EXCEEDED', async () => {
+    const out = await submit({
+      customerId: 'cust-sanna',
+      items: [{ assetId: 'ebike-004', quantity: 1 }],
+      termMonths: 12,
+    });
+    expect(out.decision).toBe('rejected');
+    expect(out.reasons.map((r) => r.code)).toEqual(['AFFORDABILITY_EXCEEDED']);
+  });
+
+  it('D1: the same request without income -> missing_answers [q_monthly_income], nothing saved', async () => {
+    const full = input({
+      customerId: 'cust-sanna',
+      items: [{ assetId: 'ebike-004', quantity: 1 }],
+      termMonths: 12,
+    });
+    const { q_monthly_income: _income, ...answers } = full.answers as Record<string, unknown>;
+    expect(await createApplication(db, { ...full, answers: answers as never }, TODAY)).toEqual({
+      ok: false,
+      reason: 'missing_answers',
+      ids: ['q_monthly_income'],
+    });
+    const wrongType = { ...full, answers: { ...answers, q_monthly_income: 'lots' } };
+    expect(await createApplication(db, wrongType, TODAY)).toMatchObject({
+      reason: 'missing_answers',
+      ids: ['q_monthly_income'],
+    });
+    expect(await db.application.count()).toBe(0);
+  });
+
+  it('D2: Mikko answering an adult birth date is still MIN_AGE (saved answers show the record)', async () => {
+    const out = await submit({
+      customerId: 'cust-mikko',
+      items: [{ assetId: 'laptop-008', quantity: 1 }],
+      answers: { q_birth_date: '2000-01-01', q_country: 'SE' },
+    });
+    expect(out.decision).toBe('rejected');
+    expect(out.reasons.map((r) => r.code)).toContain('MIN_AGE');
+    const row = await db.application.findUniqueOrThrow({ where: { id: out.applicationId } });
+    const mikko = customers.find((c) => c.id === 'cust-mikko')!;
+    expect(JSON.parse(row.answers_json)).toMatchObject({
+      q_birth_date: mikko.type === 'company' ? undefined : mikko.birth_date,
+      q_customer_type: 'consumer',
+    });
+  });
+
+  it('D2: Norvi answering sole_trader still SIGNATORY_REQUIRED', async () => {
+    const out = await submit({
+      customerId: 'cust-norvi',
+      items: [{ assetId: 'ebike-004', quantity: 4 }],
+      answers: { q_customer_type: 'sole_trader', q_birth_date: '1980-01-01' },
+    });
+    expect(out.decision).toBe('pending');
+    expect(out.reasons.map((r) => r.code)).toContain('SIGNATORY_REQUIRED');
+  });
+
+  it('D5: no list price on the day -> price_not_available (a value, not a throw)', async () => {
+    expect(await createApplication(db, input({}), '1999-01-01')).toEqual({
+      ok: false,
+      reason: 'price_not_available',
+      id: 'ebike-001',
+    });
+    expect(await db.application.count()).toBe(0);
+  });
+
+  it('D6: items of two categories -> mixed_categories', async () => {
+    const mixed = input({
+      items: [
+        { assetId: 'ebike-001', quantity: 1 },
+        { assetId: 'laptop-008', quantity: 1 },
+      ],
+    });
+    expect(await createApplication(db, mixed, TODAY)).toEqual({
+      ok: false,
+      reason: 'mixed_categories',
+    });
+    expect(await db.application.count()).toBe(0);
+  });
+
   it('reserved asset -> asset_not_available; missing asset or customer -> refused; nothing saved', async () => {
     await db.asset.update({ where: { id: 'ebike-001' }, data: { status: 'reserved' } });
     expect(await createApplication(db, input({}), TODAY)).toEqual({
@@ -105,7 +199,8 @@ describe('createApplication', () => {
     expect(
       await createApplication(db, input({ items: [{ assetId: 'nope', quantity: 1 }] }), TODAY)
     ).toMatchObject({ ok: false, reason: 'asset_not_found' });
-    expect(await createApplication(db, input({ customerId: 'zzz' }), TODAY)).toMatchObject({
+    // no id echoed back to the client
+    expect(await createApplication(db, input({ customerId: 'zzz' }), TODAY)).toEqual({
       ok: false,
       reason: 'unknown_customer',
     });

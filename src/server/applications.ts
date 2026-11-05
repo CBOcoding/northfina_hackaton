@@ -9,7 +9,13 @@ import {
   loadVatRates,
 } from '@/data/load';
 import type { PrismaClient } from '@/generated/prisma/client';
-import { customerFromAnswers, dealFor } from '@/domain/application';
+import {
+  answersFromCustomer,
+  customerFromAnswers,
+  dealFor,
+  missingQuestionIds,
+  RECORD_QUESTION_IDS,
+} from '@/domain/application';
 import { evaluateEligibility, type Reason } from '@/domain/eligibility';
 import { withVat } from '@/domain/explain';
 import { listPriceOn } from '@/domain/price-list';
@@ -38,11 +44,13 @@ export type ApplicationOutcome = {
 
 export type CreateApplicationResult =
   | { ok: true; outcome: ApplicationOutcome }
+  | { ok: false; reason: 'unknown_customer' | 'mixed_categories' }
   | {
       ok: false;
-      reason: 'unknown_customer' | 'asset_not_found' | 'asset_not_available';
+      reason: 'asset_not_found' | 'asset_not_available' | 'price_not_available';
       id: string;
-    };
+    }
+  | { ok: false; reason: 'missing_answers'; ids: string[] };
 
 /** Prices, checks and saves one application (with an `application.submitted` audit row, atomically). */
 export async function createApplication(
@@ -58,7 +66,7 @@ export async function createApplication(
     loadVatRates(),
   ]);
   const base = customers.find((c) => c.id === input.customerId);
-  if (!base) return { ok: false, reason: 'unknown_customer', id: input.customerId };
+  if (!base) return { ok: false, reason: 'unknown_customer' };
 
   const rows = await db.asset.findMany({
     where: { id: { in: input.items.map((i) => i.assetId) } },
@@ -73,14 +81,25 @@ export async function createApplication(
     }
   }
 
-  let priceListVersion = 0;
-  const lines = input.items.map((item) => {
+  // One category per application: the questions and rules depend on it.
+  const category = byId.get(input.items[0]!.assetId)!.category;
+  if (input.items.some((i) => byId.get(i.assetId)!.category !== category)) {
+    return { ok: false, reason: 'mixed_categories' };
+  }
+
+  const versions = new Set<number>();
+  const lines: { assetId: string; quantity: number; unitCents: number }[] = [];
+  for (const item of input.items) {
     const price = listPriceOn(priceLists, item.assetId, today);
-    if (!price.ok)
-      throw new Error(`no list price for ${item.assetId} on ${today}: ${price.reason}`);
-    priceListVersion = price.priceListVersion;
-    return { ...item, unitCents: price.priceCents };
-  });
+    if (!price.ok) return { ok: false, reason: 'price_not_available', id: item.assetId };
+    versions.add(price.priceListVersion);
+    lines.push({ ...item, unitCents: price.priceCents });
+  }
+  // Same day, same list: a mix would mean the data is broken, so refuse rather than guess.
+  if (versions.size !== 1) {
+    return { ok: false, reason: 'price_not_available', id: input.items[0]!.assetId };
+  }
+  const priceListVersion = [...versions][0]!;
   const listPriceCents = lines.reduce((sum, l) => sum + l.unitCents * l.quantity, 0);
 
   const quoted = quoteLease(table, {
@@ -97,13 +116,22 @@ export async function createApplication(
   }
 
   // Questions are hidden or shown by the deal, so prune on the server with the real deal.
-  const category = byId.get(input.items[0]!.assetId)!.category;
-  const customerType = (input.answers.q_customer_type as string | undefined) ?? base.type;
-  const { answers, dropped } = pruneAnswers(
-    questionsFile.questions,
-    dealFor({ customerType, category, financedCents, termMonths: input.termMonths }),
-    input.answers
-  );
+  // The verified record answers the identity questions; whatever the client sent for them is replaced.
+  const given: Record<string, Answers[string]> = { ...input.answers };
+  const fromRecord = answersFromCustomer(base);
+  for (const id of RECORD_QUESTION_IDS) {
+    if (fromRecord[id] === undefined) delete given[id];
+    else given[id] = fromRecord[id];
+  }
+  const deal = dealFor({
+    customerType: base.type,
+    category,
+    financedCents,
+    termMonths: input.termMonths,
+  });
+  const { answers, dropped } = pruneAnswers(questionsFile.questions, deal, given);
+  const missing = missingQuestionIds(questionsFile.questions, deal, answers);
+  if (missing.length > 0) return { ok: false, reason: 'missing_answers', ids: missing };
   const customer = customerFromAnswers(base, answers);
   const income = answers.q_monthly_income;
   const result = evaluateEligibility({

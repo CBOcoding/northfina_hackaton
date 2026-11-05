@@ -20,18 +20,31 @@ const bodySchema = z.strictObject({
     }),
   termMonths: z.union([z.literal(12), z.literal(24), z.literal(36), z.literal(48)]),
   downPaymentCents: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
-  answers: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.string())])),
+  // Bounded: answers are stored as JSON.
+  answers: z
+    .record(
+      z.string().max(100),
+      z.union([z.string().max(500), z.number(), z.array(z.string().max(500)).max(20)])
+    )
+    .refine((a) => Object.keys(a).length <= 50, { message: 'at most 50 answers' }),
 });
 
 export const POST = handleRoute(async (request) => {
   const body = await readJsonBody(request, bodySchema);
   const result = await createApplication(db, body, todayIso());
   if (result.ok) return ok(result.outcome);
-  if (result.reason === 'unknown_customer') {
-    return fail(400, 'UNKNOWN_CUSTOMER', `No customer with id "${result.id}"`);
+  switch (result.reason) {
+    case 'unknown_customer':
+      return fail(400, 'UNKNOWN_CUSTOMER', 'Unknown customer');
+    case 'mixed_categories':
+      return fail(400, 'MIXED_CATEGORIES', 'All items must be in the same category');
+    case 'missing_answers':
+      return fail(400, 'MISSING_ANSWERS', 'Some questions are not answered', result.ids);
+    case 'asset_not_found':
+      return fail(404, 'ASSET_NOT_FOUND', `No asset with id "${result.id}"`);
+    case 'price_not_available':
+      return fail(409, 'PRICE_NOT_AVAILABLE', `No list price for asset "${result.id}" today`);
+    case 'asset_not_available':
+      return fail(409, 'ASSET_NOT_AVAILABLE', `Asset "${result.id}" is not available`);
   }
-  if (result.reason === 'asset_not_found') {
-    return fail(404, 'ASSET_NOT_FOUND', `No asset with id "${result.id}"`);
-  }
-  return fail(409, 'ASSET_NOT_AVAILABLE', `Asset "${result.id}" is not available`);
 });
