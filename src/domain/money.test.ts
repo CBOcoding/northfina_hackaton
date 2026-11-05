@@ -6,6 +6,7 @@ import {
   formatEuro,
   percentToBasisPoints,
   roundHalfUp,
+  roundHalfUpBig,
 } from './money';
 
 // Intl uses no-break spaces; compare with plain spaces so the tests are readable.
@@ -100,5 +101,19 @@ describe('basis points', () => {
 
   it('throws on negative cents', () => {
     expect(() => applyBasisPoints(-1, 2_550)).toThrow(RangeError);
+  });
+});
+
+describe('roundHalfUpBig', () => {
+  it('rounds big exact fractions half up', () => {
+    expect(roundHalfUpBig(5n, 10n)).toBe(1);
+    expect(roundHalfUpBig(4n, 10n)).toBe(0);
+    expect(roundHalfUpBig(10n ** 30n * 7n + 5n * 10n ** 29n, 10n ** 30n)).toBe(8);
+  });
+
+  it('throws on negative input, zero denominator and unsafe results', () => {
+    expect(() => roundHalfUpBig(-1n, 10n)).toThrow(RangeError);
+    expect(() => roundHalfUpBig(1n, 0n)).toThrow(RangeError);
+    expect(() => roundHalfUpBig(10n ** 20n, 1n)).toThrow(RangeError);
   });
 });
