@@ -276,25 +276,6 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
             </p>
           </div>
           <div>
-            <label htmlFor="f-qty" className="text-base font-semibold">
-              {t('apply.field.quantity')}
-            </label>
-            <input
-              id="f-qty"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={inputs.qtyText}
-              aria-invalid={bad(qty === null)}
-              aria-describedby="f-qty-help"
-              onChange={(e) => setInput({ qtyText: e.target.value.replace(/\D/g, '').slice(0, 2) })}
-              className={field}
-            />
-            <p id="f-qty-help" className={help}>
-              {bad(qty === null) ? t('apply.qtyBad') : t('apply.field.quantityHelp')}
-            </p>
-          </div>
-          <div>
             <label htmlFor="f-term" className="text-base font-semibold">
               {t('apply.field.term')}
             </label>
