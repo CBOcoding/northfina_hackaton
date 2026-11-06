@@ -9,8 +9,10 @@
   --font-sans:
     var(--font-brand), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial,
     sans-serif;
-  /* Amounts use the same typeface with tabular figures (set per element), like the host's site. */
-  --font-mono: var(--font-brand), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Amounts and codes use the same typeface as the text, so a euro amount always looks the same. */
+  --font-mono:
+    var(--font-brand), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial,
+    sans-serif;
 
   /* Primary: blue (#0a44fa on white is 6.6:1, so text in it passes WCAG AA). */
   --color-emerald-50: #f6f7ff;
@@ -24,6 +26,17 @@
   --color-emerald-800: #002ae4;
   --color-emerald-900: #0100cc;
   --color-emerald-950: #0b1650;
+
+  /* Success / available: the host's green (#009b01 on white is 4.8:1). */
+  --color-green-50: #eeffed;
+  --color-green-100: #d9f8d8;
+  --color-green-200: #b4ebb3;
+  --color-green-400: #4fd04f;
+  --color-green-600: #009b01;
+  --color-green-700: #007f01;
+  --color-green-800: #0b6a0c;
+  --color-green-900: #0d4f0e;
+  --color-green-950: #062d07;
 
   /* Neutrals: cool greys around the host's #231f20 text and #757575 secondary text. */
   --color-stone-50: #f7f9fc;
@@ -43,6 +56,15 @@
 :focus-visible {
   outline: 2px solid var(--color-emerald-600);
   outline-offset: 2px;
+}
+
+/*
+ * The brand typeface's tabular figures swap in a slashed zero and a wide space, which made
+ * amounts like "4 084,00 €" look odd next to the same amount in a sentence. Use its normal
+ * figures everywhere so every euro amount looks the same.
+ */
+.tabular-nums {
+  font-variant-numeric: normal;
 }
 
 h1,

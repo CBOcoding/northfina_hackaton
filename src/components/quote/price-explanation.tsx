@@ -1,4 +1,8 @@
-// "Explain my price": each step of the calculation as a plain sentence and its amount.
+'use client';
+
+// "Explain my price": each step of the calculation and its amount. The headline of every step
+// is always shown; the plain-language detail under each one opens with the toggle.
+import { useId, useState } from 'react';
 import type { ExplainStep } from '@/domain/explain';
 import { formatEuro } from '@/domain/money';
 import { getT, type MessageKey, type TranslateValues } from '@/i18n/get-t';
@@ -7,6 +11,8 @@ import { intlLocale, type Locale } from '@/i18n/locales';
 
 export function PriceExplanation({ locale, steps }: { locale: Locale; steps: ExplainStep[] }) {
   const t = getT(locale);
+  const listId = useId();
+  const [open, setOpen] = useState(false);
   const eur = (cents: number) => formatEuro(cents, intlLocale[locale]);
   // Keys are built from the step id; every step id has its label and hint in the message files.
   const say = (key: string, v: TranslateValues) => t(key as MessageKey, v);
@@ -67,11 +73,36 @@ export function PriceExplanation({ locale, steps }: { locale: Locale; steps: Exp
       aria-labelledby="explain-title"
       className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900"
     >
-      <h2 id="explain-title" className="text-xl font-semibold">
-        {t('explain.title')}
-      </h2>
-      <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{t('explain.intro')}</p>
-      <ol className="mt-4 flex flex-col">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="explain-title" className="text-xl font-semibold">
+            {t('explain.title')}
+          </h2>
+          <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{t('explain.intro')}</p>
+        </div>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setOpen((o) => !o)}
+          className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-stone-300 px-4 text-sm font-medium hover:border-stone-500 dark:border-stone-700"
+        >
+          {open ? t('explain.hideDetails') : t('explain.showDetails')}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 8l5 5 5-5" />
+          </svg>
+        </button>
+      </div>
+      <ol id={listId} className="mt-4 flex flex-col">
         {steps.map((step, i) => {
           const v = values(step);
           const amount = step.amountCents ?? 0;
@@ -91,9 +122,11 @@ export function PriceExplanation({ locale, steps }: { locale: Locale; steps: Exp
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="font-medium">{say(`explain.${step.id}.label`, v)}</span>
-                <span className="text-sm text-stone-600 dark:text-stone-400">
-                  {say(hintKey(step), v)}
-                </span>
+                {open ? (
+                  <span className="text-sm text-stone-600 dark:text-stone-400">
+                    {say(hintKey(step), v)}
+                  </span>
+                ) : null}
               </span>
               <span
                 className={

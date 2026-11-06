@@ -77,7 +77,9 @@ export const ResultPanel = forwardRef<HTMLHeadingElement, Props>(function Result
 
       {reasons.length > 0 ? (
         <>
-          <h3 className="mt-6 text-lg font-semibold">{t('apply.result.why')}</h3>
+          <h3 className="mt-6 text-lg font-semibold">
+            {decision === 'approved' ? t('apply.result.goodToKnow') : t('apply.result.why')}
+          </h3>
           <ul className="mt-2 list-disc space-y-2 pl-6 text-lg">
             {reasons.map(({ code }) => (
               <li key={code}>{tOr(t, `apply.reason.${code}`, t('apply.reason.UNKNOWN'))}</li>

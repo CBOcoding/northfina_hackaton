@@ -54,6 +54,12 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
             <div className="flex flex-wrap items-center gap-3">
               <nav aria-label={t('nav.main')}>
                 <Link
+                  href={`/${locale}`}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white"
+                >
+                  {t('nav.catalogue')}
+                </Link>
+                <Link
                   href={`/${locale}/contracts`}
                   className="rounded-full px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white"
                 >
