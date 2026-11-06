@@ -331,3 +331,140 @@ describe('signing an application from the question flow', () => {
     expect((await getSignableApplication(db, app.id))?.answers).toEqual({});
   });
 });
+
+// better-sqlite3 is synchronous, so a plain Promise.all may not interleave two signs. These
+// proxies pause one call until the other request reached a chosen point, making the race real.
+function pauseBefore(
+  base: PrismaClient,
+  model: 'contract' | null,
+  method: string,
+  gate: () => Promise<unknown>
+): PrismaClient {
+  const wrap = (target: object, inner: (t: object) => object) =>
+    new Proxy(target, {
+      get(t, p) {
+        const value: unknown = Reflect.get(t, p);
+        if (p === method && typeof value === 'function')
+          return async (...args: unknown[]) => {
+            await gate().catch(() => {});
+            return (value as (...a: unknown[]) => unknown).apply(t, args);
+          };
+        if (model && p === model) return inner(value as object);
+        return typeof value === 'function' ? value.bind(t) : value;
+      },
+    });
+  return (model ? wrap(base, (m) => wrap(m, (x) => x)) : wrap(base, (x) => x)) as PrismaClient;
+}
+
+/** Resolves for everyone once `n` callers arrived. */
+function barrier(n: number) {
+  let arrived = 0;
+  let open!: () => void;
+  const all = new Promise<void>((resolve) => (open = resolve));
+  return () => {
+    if (++arrived >= n) open();
+    return all;
+  };
+}
+
+/** Both requests prepare (same checks, same number) before either stores. */
+function bothPrepareFirst(): [PrismaClient, PrismaClient] {
+  const arrive = barrier(2);
+  return [
+    pauseBefore(db, null, '$transaction', arrive),
+    pauseBefore(db, null, '$transaction', arrive),
+  ];
+}
+
+/** B checks the items before A stores, but numbers its contract after A committed. */
+function staggered(
+  run: (a: PrismaClient, b: PrismaClient) => [Promise<unknown>, Promise<unknown>]
+) {
+  let bChecked!: () => void;
+  const checked = new Promise<void>((resolve) => (bChecked = resolve));
+  let aSettled!: () => void;
+  const aDone = new Promise<void>((resolve) => (aSettled = resolve));
+  const a = pauseBefore(db, null, '$transaction', () => checked);
+  const b = pauseBefore(db, 'contract', 'count', () => {
+    bChecked();
+    return aDone;
+  });
+  const [pa, pb] = run(a, b);
+  pa.finally(aSettled).catch(() => {});
+  return Promise.all([pa, pb]);
+}
+
+describe('signing at the same time', () => {
+  async function approved(customerId: string, assetId: string) {
+    return db.application.create({
+      data: {
+        customer_id: customerId,
+        quoted_on: '2026-11-05',
+        price_list_version: 1,
+        list_price_cents: 389_000,
+        down_payment_cents: 0,
+        term_months: 36,
+        decision: 'approved',
+        items: { create: [{ asset_id: assetId, list_price_cents: 389_000, quantity: 1 }] },
+      },
+    });
+  }
+  const signAs = (client: PrismaClient, applicationId: string) =>
+    signApplication(client, data, {
+      applicationId,
+      signedBy: 'X',
+      signedOn: '2026-11-05',
+      actor: 'customer',
+    });
+
+  it('two applications for one bike: one contract, the other is told the bike is gone', async () => {
+    const first = await approved('cust-aino', 'ebike-003');
+    const second = await approved('cust-norvi', 'ebike-003');
+    const results = await staggered((a, b) => [signAs(a, first.id), signAs(b, second.id)]);
+    expect(results.map((r) => (r as { ok: boolean }).ok).sort()).toEqual([false, true]);
+    expect(results).toContainEqual({ ok: false, reason: 'asset_not_available' });
+    expect(await db.contract.count()).toBe(1);
+    expect(await db.invoice.count()).toBe(36);
+    expect(await db.auditLog.count({ where: { action: 'contract.signed' } })).toBe(1);
+    expect((await db.asset.findUniqueOrThrow({ where: { id: 'ebike-003' } })).status).toBe(
+      'reserved'
+    );
+  });
+
+  it('one application signed twice at once: once, and the second is told so', async () => {
+    const app = await approved('cust-aino', 'ebike-003');
+    const [a, b] = bothPrepareFirst();
+    const results = await Promise.all([signAs(a, app.id), signAs(b, app.id)]);
+    expect(results.map((r) => r.ok).sort()).toEqual([false, true]);
+    expect(results).toContainEqual({ ok: false, reason: 'application_already_signed' });
+    expect(await db.contract.count()).toBe(1);
+  });
+
+  it('two unrelated signs at once both succeed with their own number', async () => {
+    const [a, b] = bothPrepareFirst();
+    const results = await Promise.all([
+      signLease(a, data, aino),
+      signLease(b, data, { ...aino, items: [{ assetId: 'ebike-012' }] }),
+    ]);
+    expect(results.map((r) => r.ok && r.stored.contract.number).sort()).toEqual([
+      'ML-2026-0001',
+      'ML-2026-0002',
+    ]);
+    expect(await db.invoice.count()).toBe(72);
+  });
+
+  it('a returned bike leased again twice at once: one second life only', async () => {
+    const second: SignLeaseInput = {
+      ...aino,
+      items: [{ assetId: 'ebike-008' }],
+      secondLife: { priceCents: 120_000, conditionAfter: 'good', usageAfter: 9_800 },
+    };
+    const results = await staggered((a, b) => [
+      signLease(a, data, second),
+      signLease(b, data, { ...second, customerId: 'cust-norvi' }),
+    ]);
+    expect(results).toContainEqual({ ok: false, reason: 'asset_not_available' });
+    expect(results.filter((r) => (r as { ok: boolean }).ok)).toHaveLength(1);
+    expect(await db.contractAsset.count({ where: { asset_id: 'ebike-008' } })).toBe(1);
+  });
+});
