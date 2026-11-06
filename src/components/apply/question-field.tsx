@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import type { Question } from '@/data/schemas';
 import type { AnswerValue } from '@/domain/question-flow';
-import type { Translate } from '@/i18n/get-t';
+import { messages, type Translate } from '@/i18n/get-t';
 import type { Locale } from '@/i18n/locales';
 import { centsToEuroText, parseEuroToCents, tOr } from './helpers';
 
@@ -28,14 +28,15 @@ export function QuestionField({ question: q, locale, t, value, invalid, fixed, o
   const whyId = `why-${q.id}`;
   const errorId = `err-${q.id}`;
   const describedBy = `${whyId}${invalid ? ` ${errorId}` : ''}`;
-  const why = q.why_we_ask[locale] ?? q.why_we_ask.en;
+  const whyKey = `apply.why.${q.id}`;
+  const why = tOr(t, whyKey, q.why_we_ask[locale] ?? q.why_we_ask.en);
   const text = q.text[locale];
 
   const hint = (
     <>
       <p
         id={whyId}
-        lang={q.why_we_ask[locale] ? undefined : 'en'}
+        lang={whyKey in messages.en || q.why_we_ask[locale] ? undefined : 'en'}
         className="mt-1 text-sm text-stone-700 dark:text-stone-300"
       >
         <span className="font-medium">{t('apply.whyLabel')}</span> {why}

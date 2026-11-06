@@ -2,9 +2,11 @@
 // (prepared by the same code that signs), why this price is locked, and a simulated
 // e-signature: the signer types their name and accepts the terms. There is no login in this
 // app; a real product would use strong identification here (e.g. bank ID).
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { connection } from 'next/server';
+import { tOr } from '@/components/apply/helpers';
 import { SignForm } from '@/components/sign/sign-form';
 import { loadCustomers } from '@/data/load';
 import { formatEuro } from '@/domain/money';
@@ -21,6 +23,15 @@ import {
 import { db } from '@/server/db';
 import { todayIso } from '@/server/today';
 
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/sign/[applicationId]'>): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  const t = getT(locale);
+  return { title: `${t('sign.title')} · ${t('brand.name')}` };
+}
+
 export default async function SignPage({ params }: PageProps<'/[locale]/sign/[applicationId]'>) {
   const { locale, applicationId } = await params;
   if (!isLocale(locale)) notFound();
@@ -35,8 +46,9 @@ export default async function SignPage({ params }: PageProps<'/[locale]/sign/[ap
   const [customers, data] = await Promise.all([loadCustomers(), loadLeaseData()]);
   const customer = customers.find((c) => c.id === application.customerId);
   const today = todayIso();
-  // Companies whose applicant cannot sign: the authorised signatory signs (card 6).
-  const signatoryOnly = application.answers.q_can_sign === 'no';
+  // Companies whose applicant cannot sign: the authorised signatory signs (card 6). The
+  // eligibility decision says so, whatever the applicant answered to q_can_sign.
+  const signatoryOnly = application.reasons.includes('SIGNATORY_REQUIRED');
   const signatoryEmail =
     typeof application.answers.q_signatory_email === 'string'
       ? application.answers.q_signatory_email
@@ -78,7 +90,11 @@ export default async function SignPage({ params }: PageProps<'/[locale]/sign/[ap
           role="alert"
           className="mt-6 rounded-xl bg-amber-50 p-5 text-amber-950 ring-1 ring-amber-200 ring-inset dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-800"
         >
-          {t('sign.cannotSign', { reason: prepared && !prepared.ok ? prepared.reason : '' })}
+          {tOr(
+            t,
+            `sign.reason.${prepared && !prepared.ok ? prepared.reason.toUpperCase() : ''}`,
+            t('sign.reason.generic')
+          )}
         </p>
       ) : (
         <>

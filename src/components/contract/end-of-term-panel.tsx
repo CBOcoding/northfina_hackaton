@@ -4,12 +4,12 @@
 // condition and usage of each item. The server computes the end date and the buyout invoice.
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { AssetCondition, UsageUnit } from '@/data/schemas';
 import type { EndChoice } from '@/domain/end-of-term';
 import { formatEuro } from '@/domain/money';
 import { CONDITION_ORDER } from '@/domain/refurbishment';
-import type { ContractStatus } from '@/domain/types';
+import type { ContractStatus, InvoiceLine } from '@/domain/types';
 import { formatIsoDate } from '@/i18n/format';
 import { getT } from '@/i18n/get-t';
 import { intlLocale, type Locale } from '@/i18n/locales';
@@ -29,13 +29,15 @@ type Props = {
   endDate: string;
   endedOn: string | null;
   buyout: { netCents: number; grossCents: number } | null;
+  /** The buyout invoice once the item is bought (it is not in the time-travel list). */
+  buyoutInvoice: InvoiceLine | null;
   items: EndItem[];
 };
 
 const CHOICES: EndChoice[] = ['buy', 'return', 'pass_on'];
 
 export function EndOfTermPanel(props: Props) {
-  const { locale, number, status, endDate, endedOn, buyout, items } = props;
+  const { locale, number, status, endDate, endedOn, buyout, buyoutInvoice, items } = props;
   const t = getT(locale);
   const router = useRouter();
   const groupId = useId();
@@ -48,6 +50,12 @@ export function EndOfTermPanel(props: Props) {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // The button is disabled while saving, so focus would be lost: take it to the error.
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   if (status !== 'active') {
     return (
@@ -60,6 +68,15 @@ export function EndOfTermPanel(props: Props) {
             date: endedOn ? formatIsoDate(endedOn, locale) : '',
           })}
         </p>
+        {status === 'bought' && buyoutInvoice ? (
+          <p className="mt-2">
+            {t('endOfTerm.buyoutInvoice', {
+              number: buyoutInvoice.number,
+              gross: eur(buyoutInvoice.grossCents),
+              date: formatIsoDate(buyoutInvoice.dueDate, locale),
+            })}
+          </p>
+        ) : null}
         {status === 'returned' || status === 'passed_on' ? (
           <ul className="mt-3 flex flex-wrap gap-3">
             {items.map((i) => (
@@ -202,6 +219,8 @@ export function EndOfTermPanel(props: Props) {
         <p className="text-sm text-stone-600 dark:text-stone-400">{t('endOfTerm.demo')}</p>
         {error ? (
           <p
+            ref={errorRef}
+            tabIndex={-1}
             role="alert"
             className="rounded-lg bg-red-50 p-3 text-red-900 dark:bg-red-950 dark:text-red-100"
           >

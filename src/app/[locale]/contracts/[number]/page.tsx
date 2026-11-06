@@ -1,5 +1,6 @@
 // One contract: the locked terms, why that price was locked, and the time-travel replay of
 // its invoices. The server picks "today" so the replay opens on the current month.
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
@@ -17,12 +18,22 @@ import { decideLockedPrice, type SigningItem } from '@/domain/contract';
 import { endOfTerm, termEndDate } from '@/domain/end-of-term';
 import { listPriceOn } from '@/domain/price-list';
 import { monthOn } from '@/domain/replay';
+import { formatIsoDate } from '@/i18n/format';
 import { getT } from '@/i18n/get-t';
 import { isLocale } from '@/i18n/locales';
 import { listAssets } from '@/server/assets';
 import { getContract } from '@/server/contracts';
 import { db } from '@/server/db';
 import { todayIso } from '@/server/today';
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/contracts/[number]'>): Promise<Metadata> {
+  const { locale, number } = await params;
+  if (!isLocale(locale)) return {};
+  const t = getT(locale);
+  return { title: `${t('contract.title', { number })} · ${t('brand.name')}` };
+}
 
 export default async function ContractPage({ params }: PageProps<'/[locale]/contracts/[number]'>) {
   const { locale, number } = await params;
@@ -33,6 +44,9 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
   const stored = await getContract(db, number);
   if (!stored) notFound();
   const { contract, invoices } = stored;
+  // The replay and its totals are about the rent; a buyout invoice is shown with the end of term.
+  const rentInvoices = invoices.filter((i) => i.kind === 'rent');
+  const buyoutInvoice = invoices.find((i) => i.kind === 'buyout') ?? null;
   const [customers, priceLists, table, curves, assets, application, vatRates] = await Promise.all([
     loadCustomers(),
     loadPriceLists(),
@@ -83,8 +97,9 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
       ? [{ category: asset.category, listPriceCents: item.listPriceCents, quantity: item.quantity }]
       : [];
   });
+  // Leaving early only makes sense while the lease runs.
   const exit =
-    band && exitItems.length === contract.items.length
+    contract.status === 'active' && band && exitItems.length === contract.items.length
       ? {
           monthlyNetCents: contract.monthlyNetCents,
           termMonths: contract.termMonths,
@@ -143,7 +158,11 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
           </p>
         </div>
         <p className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-900 ring-1 ring-emerald-200 ring-inset dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
-          {t('contract.locked')}
+          {contract.status === 'active'
+            ? t('contract.locked')
+            : t(`contract.ended.${contract.status}`, {
+                date: contract.endedOn ? formatIsoDate(contract.endedOn, locale) : '',
+              })}
         </p>
       </div>
 
@@ -156,9 +175,9 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
       />
       <TimeTravel
         locale={locale}
-        invoices={invoices}
+        invoices={rentInvoices}
         startDate={contract.startDate}
-        initialMonth={monthOn(invoices, todayIso())}
+        initialMonth={monthOn(rentInvoices, todayIso())}
         exit={exit}
       />
       <EndOfTermPanel
@@ -168,6 +187,7 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
         endDate={termEndDate(contract.startDate, contract.termMonths)}
         endedOn={contract.endedOn}
         buyout={buyout}
+        buyoutInvoice={buyoutInvoice}
         items={endItems}
       />
     </div>
