@@ -201,6 +201,7 @@
   "apply.result.approved.title": "Good news: approved",
   "apply.result.approved.body": "Your application passed every check. The contract to sign is the next step.",
   "apply.result.monthly": "Monthly rent incl. VAT: {amount}",
+  "apply.result.sign": "Read and sign the contract",
   "apply.result.rejected.title": "We cannot approve this right now",
   "apply.result.rejected.body": "This is not a verdict on you. Here is the reason, in plain words.",
   "apply.result.pending.title": "Almost there: another person must sign",

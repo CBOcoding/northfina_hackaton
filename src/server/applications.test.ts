@@ -84,6 +84,19 @@ describe('createApplication', () => {
     expect(row.quoted_on).toBe(TODAY);
   });
 
+  it('card 6 (corrected): Norvi, 1 x ebike-004, waits for the signatory whose email it saved', async () => {
+    const out = await submit({
+      customerId: 'cust-norvi',
+      items: [{ assetId: 'ebike-004', quantity: 1 }],
+    });
+    expect(out.decision).toBe('pending');
+    expect(out.reasons.map((r) => r.code)).toEqual(['SIGNATORY_REQUIRED']);
+    const row = await db.application.findUniqueOrThrow({ where: { id: out.applicationId } });
+    const answers = JSON.parse(row.answers_json) as Record<string, unknown>;
+    expect(answers.q_can_sign).toBe('no');
+    expect(typeof answers.q_signatory_email).toBe('string');
+  });
+
   it('card 7: Haapala, farm-002, 48 months, 20 000 EUR down, goes to manual review (PEP)', async () => {
     const out = await submit({
       customerId: 'cust-haapala',

@@ -201,6 +201,7 @@
   "apply.result.approved.title": "Head uudised: kinnitatud",
   "apply.result.approved.body": "Sinu taotlus läbis kõik kontrollid. Järgmine samm on allkirjastatav leping.",
   "apply.result.monthly": "Kuutasu koos käibemaksuga: {amount}",
+  "apply.result.sign": "Loe ja allkirjasta leping",
   "apply.result.rejected.title": "Me ei saa seda praegu kinnitada",
   "apply.result.rejected.body": "See pole hinnang sinule. Siin on põhjus selges keeles.",
   "apply.result.pending.title": "Peaaegu valmis: allkirjastama peab keegi teine",
