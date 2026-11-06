@@ -20,6 +20,9 @@ export type EndContractResult =
   | Extract<EndOfTermResult, { ok: false }>
   | { ok: false; reason: 'not_found' };
 
+/** Thrown inside the transaction when another request ended the contract first. */
+class AlreadyEnded extends Error {}
+
 export async function endContract(
   db: PrismaClient,
   vatRates: VatRates,
@@ -49,13 +52,29 @@ export async function endContract(
   );
   if (!result.ok) return result;
 
+  try {
+    await saveEnd(db, input, row.id, row.number, result);
+  } catch (error) {
+    if (error instanceof AlreadyEnded) return { ok: false, reason: 'not_active' };
+    throw error;
+  }
+  return result;
+}
+
+async function saveEnd(
+  db: PrismaClient,
+  input: EndContractInput,
+  contractId: string,
+  number: string,
+  result: Extract<EndOfTermResult, { ok: true }>
+) {
   await withAudit(
     db,
     {
       actor: input.actor,
       action: `contract.${result.status}`,
       entityType: 'contract',
-      entityId: row.number,
+      entityId: number,
       details: {
         endedOn: result.endedOn,
         buyoutGrossCents: result.invoice?.grossCents ?? null,
@@ -63,15 +82,18 @@ export async function endContract(
       },
     },
     async (tx) => {
-      await tx.contract.update({
-        where: { id: row.id },
+      // The status was read before this transaction. Claim the contract only if it is still
+      // active, so two requests at once (double click, two tabs) cannot both end it.
+      const claimed = await tx.contract.updateMany({
+        where: { id: contractId, status: 'active' },
         data: { status: result.status, ended_on: result.endedOn },
       });
+      if (claimed.count !== 1) throw new AlreadyEnded();
       const invoice = result.invoice;
       if (invoice) {
         await tx.invoice.create({
           data: {
-            contract_id: row.id,
+            contract_id: contractId,
             seq: invoice.seq,
             number: invoice.number,
             kind: invoice.kind,
@@ -102,5 +124,4 @@ export async function endContract(
       }
     }
   );
-  return result;
 }
