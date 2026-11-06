@@ -4,10 +4,13 @@
 // The domain returns step ids and numbers only; the UI turns each id into a sentence in the
 // customer's language (src/i18n). Every amount here comes from pricing.ts and money.ts, so
 // the explanation can never disagree with the contract.
-import type { CoefficientTable } from '@/data/schemas';
+import type { CoefficientTable, VatRates } from '@/data/schemas';
+import { addMonthsClamped } from './calendar';
+import { rentSchedule } from './invoicing';
 import { applyBasisPoints } from './money';
 import { quoteLease, type Quote, type QuoteRefusal } from './pricing';
-import type { Cents } from './types';
+import type { Cents, IsoDate } from './types';
+import { vatRateOn } from './vat';
 
 export type ExplainStepId =
   | 'list_price'
@@ -17,6 +20,7 @@ export type ExplainStepId =
   | 'monthly_net'
   | 'vat'
   | 'monthly_gross'
+  | 'vat_change'
   | 'total_cost'
   | 'buyout';
 
@@ -30,7 +34,17 @@ export type ExplainStep = {
   emphasis: boolean;
 };
 
-/** What a quote costs once VAT is added at `vatRateBp` (the rate on the quote day). */
+/** From `fromDate` on, `invoiceCount` invoices carry VAT at `rateBp`. */
+export type VatChange = {
+  fromDate: IsoDate;
+  rateBp: number;
+  monthlyGrossCents: Cents;
+  /** This invoice minus the one before the change (negative if VAT goes down). */
+  differenceCents: Cents;
+  invoiceCount: number;
+};
+
+/** What a quote costs with VAT. The monthly figures are the first invoice's. */
 export type PricedWithVat = {
   quote: Quote;
   vatRateBp: number;
@@ -38,9 +52,14 @@ export type PricedWithVat = {
   monthlyGrossCents: Cents;
   /** Down payment + all monthly payments with VAT. Excludes the optional buyout. */
   totalCostCents: Cents;
+  /** VAT rate changes during the term, in order (empty when one rate covers it all). */
+  vatChanges: VatChange[];
+  buyoutVatRateBp: number;
   buyoutVatCents: Cents;
   buyoutGrossCents: Cents;
 };
+
+/** Everything at one VAT rate, e.g. today's, as if it never changed during the term. */
 
 export function withVat(quote: Quote, vatRateBp: number): PricedWithVat {
   const monthlyVatCents = applyBasisPoints(quote.monthlyNetCents, vatRateBp);
@@ -52,6 +71,57 @@ export function withVat(quote: Quote, vatRateBp: number): PricedWithVat {
     monthlyVatCents,
     monthlyGrossCents,
     totalCostCents: quote.downPaymentCents + monthlyGrossCents * quote.termMonths,
+    vatChanges: [],
+    buyoutVatRateBp: vatRateBp,
+    buyoutVatCents,
+    buyoutGrossCents: quote.buyoutNetCents + buyoutVatCents,
+  };
+}
+
+/**
+ * The quote as it will be invoiced for a lease starting on `startDate`: the total is the down
+ * payment + Σ gross of the real rent schedule (VAT of each due date, see invoicing.ts), and the
+ * buyout carries VAT of the term-end date, when it would be invoiced. So the quote's total equals
+ * the invoices' to the cent. null when a date in the term has no VAT rate.
+ */
+export function withVatSchedule(
+  quote: Quote,
+  vatRates: VatRates,
+  startDate: IsoDate
+): PricedWithVat | null {
+  const schedule = rentSchedule(vatRates, {
+    contractNumber: 'QUOTE',
+    startDate,
+    termMonths: quote.termMonths,
+    monthlyNetCents: quote.monthlyNetCents,
+  });
+  const buyoutRate = vatRateOn(vatRates, addMonthsClamped(startDate, quote.termMonths));
+  if (!schedule.ok || !buyoutRate.ok) return null;
+
+  const periods: VatChange[] = [];
+  for (const invoice of schedule.invoices) {
+    const last = periods.at(-1);
+    if (last?.rateBp === invoice.vatRateBp) last.invoiceCount++;
+    else
+      periods.push({
+        fromDate: invoice.dueDate,
+        rateBp: invoice.vatRateBp,
+        monthlyGrossCents: invoice.grossCents,
+        differenceCents: last ? invoice.grossCents - last.monthlyGrossCents : 0,
+        invoiceCount: 1,
+      });
+  }
+  const [first, ...vatChanges] = periods;
+  if (!first) return null; // unreachable: rentSchedule always has ≥ 1 invoice
+  const buyoutVatCents = applyBasisPoints(quote.buyoutNetCents, buyoutRate.rateBp);
+  return {
+    quote,
+    vatRateBp: first.rateBp,
+    monthlyVatCents: first.monthlyGrossCents - quote.monthlyNetCents,
+    monthlyGrossCents: first.monthlyGrossCents,
+    totalCostCents: quote.downPaymentCents + schedule.totals.grossCents,
+    vatChanges,
+    buyoutVatRateBp: buyoutRate.rateBp,
     buyoutVatCents,
     buyoutGrossCents: quote.buyoutNetCents + buyoutVatCents,
   };
@@ -90,17 +160,26 @@ export function explainPrice(
     step('monthly_net', quote.monthlyNetCents),
     step('vat', priced.monthlyVatCents, { ratePercent: priced.vatRateBp / 100 }),
     step('monthly_gross', priced.monthlyGrossCents, {}, true),
+    ...priced.vatChanges.map((c) =>
+      step('vat_change', c.differenceCents, {
+        fromDate: c.fromDate,
+        ratePercent: c.rateBp / 100,
+        monthlyGrossCents: c.monthlyGrossCents,
+        invoiceCount: c.invoiceCount,
+      })
+    ),
     step('total_cost', priced.totalCostCents, { termMonths: quote.termMonths }, true),
     step('buyout', quote.buyoutNetCents, {
       buyoutPercent: quote.buyoutPercent,
       buyoutGrossCents: priced.buyoutGrossCents,
+      buyoutVatPercent: priced.buyoutVatRateBp / 100,
     }),
   ];
 }
 
 export type TermOption =
   | { termMonths: number; ok: true; priced: PricedWithVat }
-  | { termMonths: number; ok: false; reason: QuoteRefusal };
+  | { termMonths: number; ok: false; reason: QuoteRefusal | 'no_vat_rate' };
 
 export type TermComparison = {
   options: TermOption[];
@@ -117,7 +196,9 @@ export function compareTerms(
     listPriceCents: Cents;
     downPaymentCents: Cents;
     terms: readonly number[];
-    vatRateBp: number;
+    vatRates: VatRates;
+    /** The day the lease would start: each invoice gets VAT of its own due date. */
+    startDate: IsoDate;
   }
 ): TermComparison {
   const options: TermOption[] = input.terms.map((termMonths) => {
@@ -126,9 +207,11 @@ export function compareTerms(
       downPaymentCents: input.downPaymentCents,
       termMonths,
     });
-    return result.ok
-      ? { termMonths, ok: true, priced: withVat(result.quote, input.vatRateBp) }
-      : { termMonths, ok: false, reason: result.reason };
+    if (!result.ok) return { termMonths, ok: false, reason: result.reason };
+    const priced = withVatSchedule(result.quote, input.vatRates, input.startDate);
+    return priced
+      ? { termMonths, ok: true, priced }
+      : { termMonths, ok: false, reason: 'no_vat_rate' };
   });
 
   const priced = options.flatMap((o) => (o.ok ? [o] : []));

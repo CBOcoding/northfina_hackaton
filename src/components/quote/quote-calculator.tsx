@@ -4,8 +4,8 @@
 // 24 vs 36 months comparison. All numbers come from the pure functions in src/domain.
 import Link from 'next/link';
 import { useId, useState } from 'react';
-import type { CoefficientTable } from '@/data/schemas';
-import { compareTerms, explainPrice, withVat } from '@/domain/explain';
+import type { CoefficientTable, VatRates } from '@/data/schemas';
+import { compareTerms, explainPrice, withVatSchedule } from '@/domain/explain';
 import {
   bandHint,
   clampDownPayment,
@@ -15,6 +15,7 @@ import {
 } from '@/domain/down-payment';
 import { formatEuro } from '@/domain/money';
 import { quoteLease } from '@/domain/pricing';
+import type { IsoDate } from '@/domain/types';
 import { getT } from '@/i18n/get-t';
 import { formatNumber } from '@/i18n/format';
 import { intlLocale, type Locale } from '@/i18n/locales';
@@ -27,11 +28,20 @@ type Props = {
   locale: Locale;
   assetId: string;
   listPriceCents: number;
-  vatRateBp: number;
+  vatRates: VatRates;
+  /** The quote day: the lease is priced as if it started then, VAT on each due date. */
+  quoteDate: IsoDate;
   table: CoefficientTable;
 };
 
-export function QuoteCalculator({ locale, assetId, listPriceCents, vatRateBp, table }: Props) {
+export function QuoteCalculator({
+  locale,
+  assetId,
+  listPriceCents,
+  vatRates,
+  quoteDate,
+  table,
+}: Props) {
   const t = getT(locale);
   const eur = (cents: number) => formatEuro(cents, intlLocale[locale]);
   const termId = useId();
@@ -55,18 +65,19 @@ export function QuoteCalculator({ locale, assetId, listPriceCents, vatRateBp, ta
     percent: downShare,
   });
   const result = quoteLease(table, { listPriceCents, downPaymentCents, termMonths });
-  const priced = result.ok ? withVat(result.quote, vatRateBp) : null;
+  const priced = result.ok ? withVatSchedule(result.quote, vatRates, quoteDate) : null;
   const band = result.ok ? table.bands.find((b) => b.band === result.quote.band) : undefined;
   const comparison = compareTerms(table, {
     listPriceCents,
     downPaymentCents,
     terms: [24, 36],
-    vatRateBp,
+    vatRates,
+    startDate: quoteDate,
   });
-  const ratePercent = formatNumber(vatRateBp / 100, locale);
+  const ratePercent = formatNumber((priced?.vatRateBp ?? 0) / 100, locale);
 
   return (
-    <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
+    <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
       <section
         aria-labelledby="quote-title"
         className="flex flex-col gap-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900"
@@ -100,7 +111,7 @@ export function QuoteCalculator({ locale, assetId, listPriceCents, vatRateBp, ta
             role="alert"
             className="rounded-xl bg-amber-50 p-5 text-amber-950 ring-1 ring-amber-200 ring-inset dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-800"
           >
-            {!result.ok ? t(`quote.refusal.${result.reason}`) : null}
+            {!result.ok ? t(`quote.refusal.${result.reason}`) : t('quote.noPrice')}
           </p>
         )}
 
