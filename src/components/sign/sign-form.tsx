@@ -3,7 +3,8 @@
 // Simulated e-signature: type your name and accept the terms. The server signs the stored
 // application (items and terms are not sent from here) and we open the new contract.
 import { useRouter } from 'next/navigation';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { tOr } from '@/components/apply/helpers';
 import { getT } from '@/i18n/get-t';
 import type { Locale } from '@/i18n/locales';
 
@@ -23,6 +24,12 @@ export function SignForm({ locale, applicationId, suggestedSigner, signatoryOnly
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // The button is disabled while signing, so focus would be lost: take it to the error.
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   async function sign(event: React.FormEvent) {
     event.preventDefault();
@@ -41,9 +48,9 @@ export function SignForm({ locale, applicationId, suggestedSigner, signatoryOnly
         router.push(`/${locale}/contracts/${body.data.contract.number}`);
         return;
       }
-      setError(t('sign.failed', { code: body.error.code }));
+      setError(tOr(t, `sign.reason.${body.error.code}`, t('sign.reason.generic')));
     } catch {
-      setError(t('sign.failed', { code: 'NETWORK' }));
+      setError(t('sign.reason.NETWORK'));
     }
     setBusy(false);
   }
@@ -84,6 +91,8 @@ export function SignForm({ locale, applicationId, suggestedSigner, signatoryOnly
       <p className="text-sm text-stone-600 dark:text-stone-400">{t('sign.simulated')}</p>
       {error ? (
         <p
+          ref={errorRef}
+          tabIndex={-1}
           role="alert"
           className="rounded-lg bg-red-50 p-3 text-red-900 dark:bg-red-950 dark:text-red-100"
         >

@@ -64,6 +64,18 @@ describe('leaseSecondLife', () => {
     expect(asset.usage_value).toBe(0); // new battery resets the wear
   });
 
+  it('a served person leaves the waiting list: ebike-011 goes to someone else than ebike-007', async () => {
+    const first = await leaseSecondLife(db, { assetId: 'ebike-007', today: TODAY, actor: 'test' });
+    expect(first).toMatchObject({ ok: true, waitingListId: 'wait-13' });
+    const second = await leaseSecondLife(db, { assetId: 'ebike-011', today: TODAY, actor: 'test' });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    // Alone, ebike-011 would also go to wait-13; served, they leave the list.
+    expect(second.waitingListId).toBe('wait-03');
+    const customers = await db.contract.findMany({ select: { customer_id: true } });
+    expect(new Set(customers.map((c) => c.customer_id)).size).toBe(2);
+  });
+
   it('refuses an item that is not back with us, and a second signing of the same item', async () => {
     expect(
       await leaseSecondLife(db, { assetId: 'ebike-003', today: TODAY, actor: 'test' })

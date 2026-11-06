@@ -58,7 +58,9 @@ export function WaitingList({ candidates, winnerId, locale, t }: Props) {
                 >
                   <th scope="row" className="px-4 py-3 font-normal">
                     <span className="font-mono text-sm">{c.request.id}</span>
-                    <span className="block">{c.request.who}</span>
+                    <span className="block">
+                      {tOr(t, `secondLife.who.${c.request.id}`, c.request.who)}
+                    </span>
                   </th>
                   <td className="px-4 py-3">
                     {t('secondLife.wants', {

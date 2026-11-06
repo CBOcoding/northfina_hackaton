@@ -75,12 +75,15 @@ export function Passport({ previousLives, contracts, nextWho, impact, locale, t 
             {kg(impact.savedSoFarGrams)} kg CO₂e
           </dd>
         </div>
-        <div className="rounded-2xl bg-emerald-50 p-4 dark:bg-emerald-950">
-          <dt className="text-sm">{t('secondLife.co2WithNext')}</dt>
-          <dd className="text-2xl font-semibold tabular-nums">
-            {kg(impact.savedWithNextGrams)} kg CO₂e
-          </dd>
-        </div>
+        {/* Only a returned item with someone to lease it has a next life. */}
+        {nextWho ? (
+          <div className="rounded-2xl bg-emerald-50 p-4 dark:bg-emerald-950">
+            <dt className="text-sm">{t('secondLife.co2WithNext')}</dt>
+            <dd className="text-2xl font-semibold tabular-nums">
+              {kg(impact.savedWithNextGrams)} kg CO₂e
+            </dd>
+          </div>
+        ) : null}
       </dl>
       <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">{t('secondLife.co2Method')}</p>
     </section>

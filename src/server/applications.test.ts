@@ -97,6 +97,36 @@ describe('createApplication', () => {
     expect(typeof answers.q_signatory_email).toBe('string');
   });
 
+  it('card 6: Norvi answering "yes" without a signatory email -> missing_answers, nothing saved', async () => {
+    const full = input({
+      customerId: 'cust-norvi',
+      items: [{ assetId: 'ebike-004', quantity: 1 }],
+      answers: { q_can_sign: 'yes' },
+    });
+    const { q_signatory_email: _email, ...answers } = full.answers as Record<string, unknown>;
+    const result = await createApplication(db, { ...full, answers: answers as never }, TODAY);
+    expect(result).toMatchObject({ ok: false, reason: 'missing_answers' });
+    expect(result.ok === false && result.reason === 'missing_answers' && result.ids).toContain(
+      'q_signatory_email'
+    );
+    expect(await db.application.count()).toBe(0);
+  });
+
+  it('card 6: Norvi answering "yes" with an email waits for the signatory; the record says "no"', async () => {
+    const out = await submit({
+      customerId: 'cust-norvi',
+      items: [{ assetId: 'ebike-004', quantity: 1 }],
+      answers: { q_can_sign: 'yes', q_signatory_email: 'board@norvi.example.com' },
+    });
+    expect(out.decision).toBe('pending');
+    expect(out.reasons.map((r) => r.code)).toEqual(['SIGNATORY_REQUIRED']);
+    const row = await db.application.findUniqueOrThrow({ where: { id: out.applicationId } });
+    expect(JSON.parse(row.answers_json)).toMatchObject({
+      q_can_sign: 'no',
+      q_signatory_email: 'board@norvi.example.com',
+    });
+  });
+
   it('card 7: Haapala, farm-002, 48 months, 20 000 EUR down, goes to manual review (PEP)', async () => {
     const out = await submit({
       customerId: 'cust-haapala',
@@ -108,8 +138,23 @@ describe('createApplication', () => {
     expect(out.reasons.map((r) => r.code)).toContain('PEP_MANUAL_REVIEW');
   });
 
-  it('rejects with FINANCED_OUT_OF_RANGE and no quote when the down payment leaves too little', async () => {
-    const out = await submit({ downPaymentCents: 10_000_000 });
+  it('refuses a down payment above the cap the quote screen offers, accepts the cap itself', async () => {
+    // ebike-001 at 1 899 €: half is 949,50 €, in 50 € steps 900 €.
+    expect(await createApplication(db, input({ downPaymentCents: 500_000 }), TODAY)).toEqual({
+      ok: false,
+      reason: 'down_payment_too_high',
+      maxCents: 90_000,
+    });
+    expect(await createApplication(db, input({ downPaymentCents: 90_001 }), TODAY)).toMatchObject({
+      reason: 'down_payment_too_high',
+    });
+    expect(await db.application.count()).toBe(0);
+    expect((await submit({ downPaymentCents: 90_000 })).decision).toBe('approved');
+  });
+
+  it('rejects with FINANCED_OUT_OF_RANGE and no quote when the amount is below the smallest lease', async () => {
+    // ebike-010 at 289 €, under band A's 300 € minimum.
+    const out = await submit({ items: [{ assetId: 'ebike-010', quantity: 1 }] });
     expect(out.decision).toBe('rejected');
     expect(out.reasons.map((r) => r.code)).toContain('FINANCED_OUT_OF_RANGE');
     expect(out.quote).toBeNull();

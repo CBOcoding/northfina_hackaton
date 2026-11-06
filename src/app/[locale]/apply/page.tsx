@@ -1,5 +1,7 @@
 // The application page: pick a person, an item and a term, answer the questions that apply.
-// Deep links prefill it: ?customer=cust-mikko&asset=laptop-008&qty=1&term=36&down=<cents>.
+// Deep links prefill it: ?customer=cust-mikko&asset=laptop-008&term=36&down=<cents>.
+// Every item is unique (one serial number), so an application is for one unit.
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { ApplyForm, type ApplyAsset } from '@/components/apply/apply-form';
@@ -14,6 +16,15 @@ import { db } from '@/server/db';
 import { todayIso } from '@/server/today';
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/apply'>): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  const t = getT(locale);
+  return { title: `${t('apply.title')} · ${t('brand.name')}` };
+}
 
 export default async function ApplyPage({ params, searchParams }: PageProps<'/[locale]/apply'>) {
   const { locale } = await params;
@@ -53,8 +64,6 @@ export default async function ApplyPage({ params, searchParams }: PageProps<'/[l
   const initial = {
     customerId: customers.find((c) => c.id === first(query.customer))?.id ?? customers[0]?.id ?? '',
     assetId: assets.find((a) => a.id === first(query.asset))?.id ?? assets[0]?.id ?? '',
-    // Every item in the data is unique (one serial number), so an application is for one unit.
-    qty: 1,
     term: (TERMS.includes(term as TermMonths) ? term : 36) as TermMonths,
     downCents: Number.isSafeInteger(down) && down >= 0 ? down : 0,
   };

@@ -20,6 +20,7 @@ const bodySchema = z.strictObject({
         usageValue: z.number().int().nonnegative().max(10_000_000),
       })
     )
+    .refine((r) => Object.keys(r).length <= 50, { message: 'at most 50 reports' })
     .optional(),
 });
 

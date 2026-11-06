@@ -1,4 +1,5 @@
 // All signed contracts, newest first, each linking to its page.
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
@@ -9,6 +10,15 @@ import { getT } from '@/i18n/get-t';
 import { intlLocale, isLocale } from '@/i18n/locales';
 import { listContracts } from '@/server/contracts';
 import { db } from '@/server/db';
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/contracts'>): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  const t = getT(locale);
+  return { title: `${t('contracts.title')} · ${t('brand.name')}` };
+}
 
 export default async function ContractsPage({ params }: PageProps<'/[locale]/contracts'>) {
   const { locale } = await params;

@@ -1,4 +1,5 @@
 // The catalogue: every asset, grouped by category, with today's net list price.
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { AssetCard } from '@/components/asset-card';
@@ -12,6 +13,13 @@ import { isLocale } from '@/i18n/locales';
 import { listAssets } from '@/server/assets';
 import { db } from '@/server/db';
 import { todayIso } from '@/server/today';
+
+export async function generateMetadata({ params }: PageProps<'/[locale]'>): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  const t = getT(locale);
+  return { title: `${t('catalogue.title')} · ${t('brand.name')}` };
+}
 
 export default async function CataloguePage({ params }: PageProps<'/[locale]'>) {
   const { locale } = await params;

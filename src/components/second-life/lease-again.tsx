@@ -3,7 +3,7 @@
 // "Lease it to …": signs the next life of a returned item. The server decides who, at what
 // price and after which work, with the same rules this page shows.
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getT } from '@/i18n/get-t';
 import type { Locale } from '@/i18n/locales';
 
@@ -19,6 +19,12 @@ export function LeaseAgain({ locale, assetId, who, help }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // The button is disabled while signing, so focus would be lost: take it to the error.
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   async function lease() {
     setBusy(true);
@@ -54,7 +60,12 @@ export function LeaseAgain({ locale, assetId, who, help }: Props) {
       </button>
       <p className="text-sm">{help}</p>
       {error ? (
-        <p role="alert" className="text-sm font-medium text-red-800 dark:text-red-300">
+        <p
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="text-sm font-medium text-red-800 dark:text-red-300"
+        >
           {t('secondLife.leaseAgainError')}
         </p>
       ) : null}

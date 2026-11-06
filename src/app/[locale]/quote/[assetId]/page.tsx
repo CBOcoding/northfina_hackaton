@@ -1,6 +1,7 @@
 // The quote page: one item, its price today, and the live calculator.
 // The server decides what "today" is and loads the data; the calculator runs the same pure
 // domain functions in the browser, so the sliders update without a round trip.
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
@@ -14,6 +15,14 @@ import { intlLocale, isLocale } from '@/i18n/locales';
 import { listAssets } from '@/server/assets';
 import { db } from '@/server/db';
 import { todayIso } from '@/server/today';
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/quote/[assetId]'>): Promise<Metadata> {
+  const { assetId } = await params;
+  const asset = (await listAssets(db)).find((a) => a.id === assetId);
+  return asset ? { title: `${asset.make} ${asset.model} · Lease Loop` } : {};
+}
 
 export default async function QuotePage({ params }: PageProps<'/[locale]/quote/[assetId]'>) {
   const { locale, assetId } = await params;
@@ -77,7 +86,8 @@ export default async function QuotePage({ params }: PageProps<'/[locale]/quote/[
           locale={locale}
           assetId={asset.id}
           listPriceCents={price.priceCents}
-          vatRateBp={vat.rateBp}
+          vatRates={vatRates}
+          quoteDate={today}
           table={table}
         />
       )}

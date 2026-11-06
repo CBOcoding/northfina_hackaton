@@ -49,28 +49,52 @@ export async function listAssets(
 }
 
 export type ChangeAssetStatusResult =
-  { ok: true; asset: Asset } | { ok: false; reason: 'not_found' };
+  { ok: true; asset: Asset } | { ok: false; reason: 'not_found' | 'under_contract' };
 
-/** Sets an asset's status and writes `asset.status_changed` to the audit log, atomically. */
+/** Thrown inside the transaction to roll it back with a refusal instead of a change. */
+class Refused extends Error {
+  constructor(readonly reason: 'not_found' | 'under_contract') {
+    super(reason);
+  }
+}
+
+/**
+ * Sets an asset's status and writes `asset.status_changed` to the audit log, atomically.
+ * Refuses an item in an active contract: freeing it here would let it be leased twice.
+ */
 export async function changeAssetStatus(
   db: PrismaClient,
   input: { id: string; status: AssetStatus; actor: string }
 ): Promise<ChangeAssetStatusResult> {
-  const existing = await db.asset.findUnique({ where: { id: input.id } });
-  if (!existing) return { ok: false, reason: 'not_found' };
-
-  const updated = await withAudit(
-    db,
-    {
-      actor: input.actor,
-      action: 'asset.status_changed',
-      entityType: 'asset',
-      entityId: input.id,
-      details: { from: existing.status, to: input.status },
-    },
-    (tx) => tx.asset.update({ where: { id: input.id }, data: { status: input.status } })
-  );
-  return { ok: true, asset: toAsset(updated) };
+  // withAudit stores `details` after `work` runs, so `from` is filled from the read in the
+  // transaction, not from a read that another request may have made stale.
+  const details = { from: '', to: input.status };
+  try {
+    const updated = await withAudit(
+      db,
+      {
+        actor: input.actor,
+        action: 'asset.status_changed',
+        entityType: 'asset',
+        entityId: input.id,
+        details,
+      },
+      async (tx) => {
+        const existing = await tx.asset.findUnique({
+          where: { id: input.id },
+          include: { contract_items: { where: { contract: { status: 'active' } }, take: 1 } },
+        });
+        if (!existing) throw new Refused('not_found');
+        if (existing.contract_items.length > 0) throw new Refused('under_contract');
+        details.from = existing.status;
+        return tx.asset.update({ where: { id: input.id }, data: { status: input.status } });
+      }
+    );
+    return { ok: true, asset: toAsset(updated) };
+  } catch (error) {
+    if (error instanceof Refused) return { ok: false, reason: error.reason };
+    throw error;
+  }
 }
 
 /** Inserts assets that are not in the database yet. Never overwrites changes you made. */

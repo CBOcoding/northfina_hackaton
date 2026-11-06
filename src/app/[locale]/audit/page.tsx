@@ -1,6 +1,7 @@
 // The audit log: every change to business data, newest first. Rows are written by
 // withAudit() in the same transaction as the change (src/server/audit.ts), so this list
 // is the full story of what happened, and who did it.
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
@@ -11,6 +12,15 @@ import { listAuditLog } from '@/server/audit';
 import { db } from '@/server/db';
 
 const LIMIT = 100;
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/audit'>): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  const t = getT(locale);
+  return { title: `${t('audit.title')} · ${t('brand.name')}` };
+}
 
 export default async function AuditPage({ params }: PageProps<'/[locale]/audit'>) {
   const { locale } = await params;

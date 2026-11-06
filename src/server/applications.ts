@@ -10,13 +10,13 @@ import {
 } from '@/data/load';
 import type { PrismaClient } from '@/generated/prisma/client';
 import {
-  answersFromCustomer,
   customerFromAnswers,
   dealFor,
   missingQuestionIds,
-  RECORD_QUESTION_IDS,
+  withRecordAnswers,
 } from '@/domain/application';
 import { evaluateEligibility, type Reason } from '@/domain/eligibility';
+import { maxDownPaymentCents } from '@/domain/down-payment';
 import { withVat } from '@/domain/explain';
 import { listPriceOn } from '@/domain/price-list';
 import { quoteLease, type Quote } from '@/domain/pricing';
@@ -50,7 +50,8 @@ export type CreateApplicationResult =
       reason: 'asset_not_found' | 'asset_not_available' | 'price_not_available';
       id: string;
     }
-  | { ok: false; reason: 'missing_answers'; ids: string[] };
+  | { ok: false; reason: 'missing_answers'; ids: string[] }
+  | { ok: false; reason: 'down_payment_too_high'; maxCents: Cents };
 
 /** Prices, checks and saves one application (with an `application.submitted` audit row, atomically). */
 export async function createApplication(
@@ -101,6 +102,11 @@ export async function createApplication(
   }
   const priceListVersion = [...versions][0]!;
   const listPriceCents = lines.reduce((sum, l) => sum + l.unitCents * l.quantity, 0);
+  // The same cap the quote and apply screens offer; the API must not accept more.
+  const maxCents = maxDownPaymentCents(table, listPriceCents);
+  if (input.downPaymentCents > maxCents) {
+    return { ok: false, reason: 'down_payment_too_high', maxCents };
+  }
 
   const quoted = quoteLease(table, {
     listPriceCents,
@@ -116,13 +122,8 @@ export async function createApplication(
   }
 
   // Questions are hidden or shown by the deal, so prune on the server with the real deal.
-  // The verified record answers the identity questions; whatever the client sent for them is replaced.
-  const given: Record<string, Answers[string]> = { ...input.answers };
-  const fromRecord = answersFromCustomer(base);
-  for (const id of RECORD_QUESTION_IDS) {
-    if (fromRecord[id] === undefined) delete given[id];
-    else given[id] = fromRecord[id];
-  }
+  // The verified record answers its questions; whatever the client sent for them is replaced.
+  const given = withRecordAnswers(base, input.answers);
   const deal = dealFor({
     customerType: base.type,
     category,

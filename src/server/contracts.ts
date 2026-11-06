@@ -7,6 +7,7 @@ import type { AssetCondition, CoefficientTable, PriceList, VatRates } from '@/da
 import { signContract, type LockedPrice, type SigningItem } from '@/domain/contract';
 import { rentSchedule } from '@/domain/invoicing';
 import { listPriceOn } from '@/domain/price-list';
+import { isSignable, parseReasons } from '@/domain/signing';
 import type {
   ContractSnapshot,
   ContractStatus,
@@ -16,8 +17,10 @@ import type {
   IsoDate,
   TermMonths,
 } from '@/domain/types';
-import type { Prisma, PrismaClient } from '@/generated/prisma/client';
+import { Prisma, type PrismaClient } from '@/generated/prisma/client';
 import { withAudit } from './audit';
+
+export { isSignable } from '@/domain/signing';
 
 export type LeaseData = {
   priceLists: readonly PriceList[];
@@ -102,14 +105,7 @@ export async function prepareLease(
   const assetIds = input.items.map((i) => i.assetId);
   if (new Set(assetIds).size !== assetIds.length) return { ok: false, reason: 'duplicate_item' };
 
-  const assets = await db.asset.findMany({ where: { id: { in: assetIds } } });
-  if (assets.length !== assetIds.length) return { ok: false, reason: 'asset_not_found' };
-  // A new lease needs an available item; a second life needs one that is back with us.
-  const leasable = input.secondLife ? 'returned' : 'available';
-  if (input.secondLife && input.items.length !== 1) return { ok: false, reason: 'duplicate_item' };
-  if (assets.some((a) => a.status !== leasable))
-    return { ok: false, reason: 'asset_not_available' };
-
+  // Checked before the items, so a second sign of one application says so, not 'not available'.
   if (input.applicationId) {
     const application = await db.application.findUnique({
       where: { id: input.applicationId },
@@ -125,6 +121,14 @@ export async function prepareLease(
       return { ok: false, reason: 'application_not_approved' };
     if (application.contract) return { ok: false, reason: 'application_already_signed' };
   }
+
+  const assets = await db.asset.findMany({ where: { id: { in: assetIds } } });
+  if (assets.length !== assetIds.length) return { ok: false, reason: 'asset_not_found' };
+  // A new lease needs an available item; a second life needs one that is back with us.
+  const leasable = input.secondLife ? 'returned' : 'available';
+  if (input.secondLife && input.items.length !== 1) return { ok: false, reason: 'duplicate_item' };
+  if (assets.some((a) => a.status !== leasable))
+    return { ok: false, reason: 'asset_not_available' };
 
   const items: SigningItem[] = [];
   for (const { assetId: id, quantity } of input.items) {
@@ -170,14 +174,54 @@ export async function prepareLease(
   return { ok: true, contract, lock, invoices: schedule.invoices };
 }
 
+/** Thrown inside the transaction when another request took one of the items first. */
+class AssetTaken extends Error {}
+
+/** Contract numbers are counted before the transaction, so two signs at once can pick the same one. */
+const SIGN_ATTEMPTS = 3;
+
 /** Signs a lease: prepares it, then stores contract, items, invoices and audit row atomically. */
 export async function signLease(
   db: PrismaClient,
   data: LeaseData,
   input: SignLeaseInput
 ): Promise<SignLeaseResult> {
-  const prepared = await prepareLease(db, data, input);
-  if (!prepared.ok) return prepared;
+  for (let attempt = 1; ; attempt++) {
+    const prepared = await prepareLease(db, data, input);
+    if (!prepared.ok) return prepared;
+    try {
+      await storeLease(db, input, prepared);
+      return {
+        ok: true,
+        stored: { contract: prepared.contract, invoices: prepared.invoices },
+        lock: prepared.lock,
+      };
+    } catch (error) {
+      if (error instanceof AssetTaken) return { ok: false, reason: 'asset_not_available' };
+      const field = uniqueViolation(error);
+      if (field === 'application_id') return { ok: false, reason: 'application_already_signed' };
+      // Invoice numbers derive from the contract number, so prepare everything again.
+      if (field === 'number' && attempt < SIGN_ATTEMPTS) continue;
+      throw error;
+    }
+  }
+}
+
+/** Which unique field a Prisma P2002 error is about, or null for any other error. */
+function uniqueViolation(error: unknown): 'application_id' | 'number' | null {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002')
+    return null;
+  // The SQLite adapter puts the fields in meta.driverAdapterError, not meta.target.
+  const text = `${JSON.stringify(error.meta ?? {})} ${error.message}`;
+  if (text.includes('application_id')) return 'application_id';
+  return text.includes('number') ? 'number' : null;
+}
+
+async function storeLease(
+  db: PrismaClient,
+  input: SignLeaseInput,
+  prepared: Extract<PreparedLease, { ok: true }>
+): Promise<void> {
   const { contract, lock } = prepared;
   const schedule = { invoices: prepared.invoices };
   const assetIds = input.items.map((i) => i.assetId);
@@ -225,8 +269,10 @@ export async function signLease(
         ).id;
 
       await tx.contract.create({ data: toContractRow(contract, applicationId, schedule.invoices) });
-      await tx.asset.updateMany({
-        where: { id: { in: assetIds } },
+      // The status was checked before this transaction. Claim the items only if they still
+      // have it, so two signs at once cannot both lease one physical item.
+      const claimed = await tx.asset.updateMany({
+        where: { id: { in: assetIds }, status: input.secondLife ? 'returned' : 'available' },
         data: input.secondLife
           ? {
               status: 'reserved',
@@ -235,20 +281,21 @@ export async function signLease(
             }
           : { status: 'reserved' },
       });
+      if (claimed.count !== assetIds.length) throw new AssetTaken();
     }
   );
-
-  return { ok: true, stored: { contract, invoices: schedule.invoices }, lock };
 }
 
 function toContractRow(
   c: ContractSnapshot,
   applicationId: string,
   invoices: readonly InvoiceLine[]
-): Prisma.ContractCreateInput {
+): Prisma.ContractUncheckedCreateInput {
   return {
     number: c.number,
-    application: { connect: { id: applicationId } },
+    // A scalar key, not connect: a second contract for one application then hits the unique
+    // index (P2002) instead of Prisma's relation check.
+    application_id: applicationId,
     customer_id: c.customerId,
     signed_on: c.signedOn,
     start_date: c.startDate,
@@ -267,7 +314,7 @@ function toContractRow(
     status: c.status,
     items: {
       create: c.items.map((i) => ({
-        asset: { connect: { id: i.assetId } },
+        asset_id: i.assetId,
         list_price_cents: i.listPriceCents,
         quantity: i.quantity,
         life_number: i.lifeNumber,
@@ -451,36 +498,6 @@ export async function signApplication(
     ...leaseFromApplication(application, input.signedBy, input.signedOn),
     actor: input.actor,
   });
-}
-
-/**
- * Can this application be signed? Approved ones can. So can one that only waits for the
- * company's authorised signatory (card 6): that person signs it, the applicant cannot.
- */
-export function isSignable(application: { decision: string; reasons: readonly string[] }): boolean {
-  if (application.decision === 'approved') return true;
-  return (
-    application.decision === 'pending' &&
-    application.reasons.length > 0 &&
-    application.reasons.every((code) => code === 'SIGNATORY_REQUIRED')
-  );
-}
-
-/** Stored reason codes; accepts [{ code }] or ["CODE"], broken JSON counts as none. */
-function parseReasons(json: string): string[] {
-  try {
-    const value: unknown = JSON.parse(json);
-    if (!Array.isArray(value)) return [];
-    return value.flatMap((r: unknown) =>
-      typeof r === 'string'
-        ? [r]
-        : r !== null && typeof r === 'object' && typeof (r as { code?: unknown }).code === 'string'
-          ? [(r as { code: string }).code]
-          : []
-    );
-  } catch {
-    return [];
-  }
 }
 
 /** Stored answers as an object; broken JSON counts as no answers. */

@@ -27,6 +27,16 @@ describe('POST /api/contracts/:number/end validation', () => {
       { choice: 'return', actor: 'a', reports: { x: { condition: 'good', usageValue: -1 } } },
     ],
     ['a date from the browser', { choice: 'buy', actor: 'a', endedOn: '2026-01-01' }],
+    [
+      'more than 50 reports',
+      {
+        choice: 'return',
+        actor: 'a',
+        reports: Object.fromEntries(
+          Array.from({ length: 51 }, (_, i) => [`a-${i}`, { condition: 'good', usageValue: 1 }])
+        ),
+      },
+    ],
   ])('rejects %s with 400 VALIDATION_ERROR', async (_name, body) => {
     const res = await post(body);
     expect(res.status).toBe(400);

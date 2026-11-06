@@ -8,7 +8,7 @@ import {
   answersFromCustomer,
   customerFromAnswers,
   dealFor,
-  RECORD_QUESTION_IDS,
+  recordQuestionIds,
 } from '@/domain/application';
 import { maxDownPaymentCents } from '@/domain/down-payment';
 import { formatEuro } from '@/domain/money';
@@ -36,7 +36,6 @@ export type ApplyAsset = {
 export type ApplyInitial = {
   customerId: string;
   assetId: string;
-  qty: number;
   term: TermMonths;
   downCents: number;
 };
@@ -54,7 +53,6 @@ type Props = {
 type Inputs = {
   customerId: string;
   assetId: string;
-  qtyText: string;
   term: TermMonths;
   downText: string;
 };
@@ -68,14 +66,11 @@ const errorText = 'font-medium text-red-800 dark:text-red-300';
 
 const filled = (v: AnswerValue | undefined) =>
   v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0);
-const parseQty = (text: string) =>
-  /^\d{1,2}$/.test(text) && Number(text) >= 1 ? Number(text) : null;
 const parseDown = (text: string) => (text.trim() === '' ? 0 : parseEuroToCents(text));
 
 function dealOf(
   customer: Customer,
   asset: ApplyAsset,
-  qty: number,
   downCents: number,
   term: TermMonths,
   answers: Answers
@@ -83,7 +78,7 @@ function dealOf(
   return dealFor({
     customerType: customerFromAnswers(customer, answers).type,
     category: asset.category,
-    financedCents: Math.max(0, asset.priceCents * qty - downCents),
+    financedCents: Math.max(0, asset.priceCents - downCents),
     termMonths: term,
   });
 }
@@ -102,14 +97,13 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
   const [inputs, setInputs] = useState<Inputs>({
     customerId: initial.customerId,
     assetId: initial.assetId,
-    qtyText: String(initial.qty),
     term: initial.term,
     downText: initial.downCents === 0 ? '' : centsToEuroText(initial.downCents),
   });
   const [answers, setAnswers] = useState<Answers>(() => {
     const { customer, asset } = pick(initial.customerId, initial.assetId);
     const start = answersFromCustomer(customer);
-    const deal = dealOf(customer, asset, initial.qty, initial.downCents, initial.term, start);
+    const deal = dealOf(customer, asset, initial.downCents, initial.term, start);
     return pruneAnswers(questions, deal, start).answers;
   });
   const [cleared, setCleared] = useState<string[]>([]);
@@ -119,29 +113,33 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
   const [result, setResult] = useState<ApplyResult | null>(null);
   const [tries, setTries] = useState(0);
   const resultRef = useRef<HTMLHeadingElement>(null);
+  const apiErrorRef = useRef<HTMLDivElement>(null);
 
   // After the commit, so the target exists: result heading, or the first invalid field.
   useEffect(() => {
     if (result) resultRef.current?.focus();
   }, [result]);
+  // The submit button is disabled while sending, so focus would be lost: take it to the error.
+  useEffect(() => {
+    if (apiError) apiErrorRef.current?.focus();
+  }, [apiError]);
   useEffect(() => {
     if (tries > 0) document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
   }, [tries]);
 
   const { customer, asset } = pick(inputs.customerId, inputs.assetId);
-  const qty = parseQty(inputs.qtyText);
   const downCents = parseDown(inputs.downText);
-  const listCents = asset.priceCents * (qty ?? 1);
+  const listCents = asset.priceCents;
   // Same limit as the quote page: at most half the price, at least 300 € left to finance.
   const maxDownCents = maxDownPaymentCents(table, listCents);
   const downTooHigh = downCents !== null && downCents > 0 && downCents > maxDownCents;
-  const deal = dealOf(customer, asset, qty ?? 1, downCents ?? 0, inputs.term, answers);
+  const deal = dealOf(customer, asset, downCents ?? 0, inputs.term, answers);
   const visible = visibleQuestions(questions, deal, answers);
   const missing = visible.filter(
     (q) => !filled(answers[q.id]) || (q.type === 'email' && !String(answers[q.id]).includes('@'))
   );
   const unavailable = asset.status !== 'available';
-  const dealErrors = qty === null || downCents === null || downTooHigh || unavailable;
+  const dealErrors = downCents === null || downTooHigh || unavailable;
   const bad = (isBad: boolean) => showErrors && isBad;
 
   /** Applies a change, then drops the answers that no longer apply and says which. */
@@ -150,7 +148,6 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
     const nextDeal = dealOf(
       picked.customer,
       picked.asset,
-      parseQty(next.qtyText) ?? 1,
       parseDown(next.downText) ?? 0,
       next.term,
       nextAnswers
@@ -182,7 +179,7 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           customerId: customer.id,
-          items: [{ assetId: asset.id, quantity: qty }],
+          items: [{ assetId: asset.id, quantity: 1 }],
           termMonths: inputs.term,
           downPaymentCents: downCents,
           answers,
@@ -353,9 +350,7 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
               t={t}
               value={answers[q.id]}
               invalid={bad(missing.includes(q))}
-              fixed={
-                (RECORD_QUESTION_IDS as readonly string[]).includes(q.id) && filled(answers[q.id])
-              }
+              fixed={recordQuestionIds(customer).includes(q.id) && filled(answers[q.id])}
               onChange={(v) => setAnswer(q.id, v)}
             />
           ))}
@@ -370,7 +365,7 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
         <div role="status" className={`mt-3 ${errorText}`}>
           {showErrors && (missing.length > 0 || dealErrors) ? t('apply.errors.fix') : null}
         </div>
-        <div role="alert" className={`mt-3 ${errorText}`}>
+        <div ref={apiErrorRef} tabIndex={-1} role="alert" className={`mt-3 ${errorText}`}>
           {apiError}
         </div>
         <button

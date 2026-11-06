@@ -16,6 +16,7 @@
 //   2. Strictest condition: someone who also accepts 'fair' will have more items to choose
 //      from, someone who needs 'good' has fewer.
 //   3. Earlier on the waiting list: first come, first served.
+// Someone who already has a contract from the waiting list has been served and never wins again.
 import type {
   Asset,
   CoefficientTable,
@@ -35,7 +36,12 @@ import {
 import type { Cents, IsoDate } from './types';
 
 export type SecondLifeExclusion =
-  'deadline_passed' | 'no_upgrade_path' | 'upgrade_not_worth_it' | 'over_budget' | QuoteRefusal;
+  | 'already_served'
+  | 'deadline_passed'
+  | 'no_upgrade_path'
+  | 'upgrade_not_worth_it'
+  | 'over_budget'
+  | QuoteRefusal;
 
 export type SecondLifeCandidate = {
   request: SecondLifeRequest;
@@ -73,6 +79,8 @@ export type SecondLifeInput = {
   costs: RefurbishmentCosts;
   curves: ResidualCurves;
   table: CoefficientTable;
+  /** Waiting-list ids that already have a contract with us. */
+  served?: readonly string[];
 };
 
 /** Whole months from 1 January of the model year to `today` (0 if the year has not started). */
@@ -100,6 +108,9 @@ function candidateFor(
   const base = { request, listIndex, valueBeforeCents };
   const none = { plan: null, valueAfterCents: null, upgradeGainCents: null, quote: null };
 
+  if (input.served?.includes(request.id)) {
+    return { ...base, ...none, excludedBecause: 'already_served' };
+  }
   if (request.needed_by < today) return { ...base, ...none, excludedBecause: 'deadline_passed' };
 
   const target = betterCondition(request.min_condition, 'fair');
