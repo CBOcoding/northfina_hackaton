@@ -312,5 +312,21 @@
   "endOfTerm.ended.returned": "Returned on {date}. Thank you: it now gets another life.",
   "endOfTerm.ended.passed_on": "Passed on on {date}. It goes straight to the next person waiting.",
   "endOfTerm.ended.exited_early": "Ended early on {date}.",
-  "endOfTerm.nextLife": "See the next life of {name}"
+  "endOfTerm.nextLife": "See the next life of {name}",
+  "nav.audit": "Audit log",
+  "audit.title": "Audit log",
+  "audit.intro": "Every change to the data, newest first (the last {limit}). Each row is written together with the change itself, so nothing changes without a trace.",
+  "audit.empty": "Nothing has changed yet.",
+  "audit.col.when": "When",
+  "audit.col.action": "What happened",
+  "audit.col.entity": "On",
+  "audit.col.actor": "Who",
+  "audit.col.details": "Details",
+  "audit.show": "Show",
+  "audit.action.application.submitted": "Application decided",
+  "audit.action.contract.signed": "Contract signed",
+  "audit.action.contract.bought": "Item bought at the end of term",
+  "audit.action.contract.returned": "Item returned at the end of term",
+  "audit.action.contract.passed_on": "Item passed on at the end of term",
+  "audit.action.asset.status_changed": "Item status changed"
 }

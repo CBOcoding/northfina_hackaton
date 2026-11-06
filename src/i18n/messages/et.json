@@ -312,5 +312,21 @@
   "endOfTerm.ended.returned": "Tagastatud {date}. Aitäh: nüüd saab see uue elu.",
   "endOfTerm.ended.passed_on": "Edasi antud {date}. See läheb otse järgmisele ootajale.",
   "endOfTerm.ended.exited_early": "Lõpetatud ennetähtaegselt {date}.",
-  "endOfTerm.nextLife": "Vaata toote {name} järgmist elu"
+  "endOfTerm.nextLife": "Vaata toote {name} järgmist elu",
+  "nav.audit": "Muudatuste logi",
+  "audit.title": "Muudatuste logi",
+  "audit.intro": "Iga andmete muudatus, uusim esimesena (viimased {limit}). Iga rida salvestatakse koos muudatusega, nii et midagi ei muutu jäljetult.",
+  "audit.empty": "Midagi pole veel muudetud.",
+  "audit.col.when": "Millal",
+  "audit.col.action": "Mis juhtus",
+  "audit.col.entity": "Objekt",
+  "audit.col.actor": "Kes",
+  "audit.col.details": "Üksikasjad",
+  "audit.show": "Näita",
+  "audit.action.application.submitted": "Taotlus otsustatud",
+  "audit.action.contract.signed": "Leping allkirjastatud",
+  "audit.action.contract.bought": "Toode ostetud perioodi lõpus",
+  "audit.action.contract.returned": "Toode tagastatud perioodi lõpus",
+  "audit.action.contract.passed_on": "Toode edasi antud perioodi lõpus",
+  "audit.action.asset.status_changed": "Toote olek muutus"
 }
