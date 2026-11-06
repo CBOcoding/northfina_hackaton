@@ -37,12 +37,15 @@ export function Passport({ previousLives, contracts, nextWho, impact, locale, t 
         {t('secondLife.passportTitle')}
       </h2>
       <ol className="mt-4 space-y-3 border-l-2 border-emerald-700 pl-5 dark:border-emerald-400">
-        {Array.from({ length: previousLives }, (_, i) => (
-          <li key={`before-${i + 1}`}>
-            {t('secondLife.life.before', { n: i + 1 })}
-            {co2Line(i + 1)}
-          </li>
-        ))}
+        {/* A life with a contract in our database is shown by that contract below. */}
+        {Array.from({ length: previousLives }, (_, i) => i + 1)
+          .filter((n) => !contracts.some((c) => c.lifeNumber === n))
+          .map((n) => (
+            <li key={`before-${n}`}>
+              {t('secondLife.life.before', { n })}
+              {co2Line(n)}
+            </li>
+          ))}
         {contracts.map((c) => (
           <li key={c.number}>
             <Link
@@ -55,6 +58,7 @@ export function Passport({ previousLives, contracts, nextWho, impact, locale, t 
                 date: formatIsoDate(c.signedOn, locale),
               })}
             </Link>
+            {co2Line(c.lifeNumber)}
           </li>
         ))}
         {nextWho ? (
