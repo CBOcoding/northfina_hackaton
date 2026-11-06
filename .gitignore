@@ -25,3 +25,6 @@ src/generated/
 .DS_Store
 npm-debug.log*
 .vercel
+
+# Local copies made by an editor hook
+backup/
