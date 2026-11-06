@@ -3,7 +3,7 @@
 // The numbers come from the pure domain functions (signContract, rentSchedule); this file
 // only loads, checks and stores.
 import { loadCoefficientTable, loadPriceLists, loadVatRates } from '@/data/load';
-import type { CoefficientTable, PriceList, VatRates } from '@/data/schemas';
+import type { AssetCondition, CoefficientTable, PriceList, VatRates } from '@/data/schemas';
 import { signContract, type LockedPrice, type SigningItem } from '@/domain/contract';
 import { rentSchedule } from '@/domain/invoicing';
 import { listPriceOn } from '@/domain/price-list';
@@ -39,6 +39,17 @@ export type SignLeaseInput = {
   /** An approved application from the question flow. Without it, one is recorded as approved. */
   applicationId?: string;
   answers?: Record<string, unknown>;
+  /**
+   * A returned item leased again (second or later life). Its price is its market value after
+   * refurbishment, not the price list, and signing records the condition after the work.
+   */
+  secondLife?: SecondLifeTerms;
+};
+
+export type SecondLifeTerms = {
+  priceCents: number;
+  conditionAfter: AssetCondition;
+  usageAfter: number;
 };
 
 export type StoredContract = {
@@ -93,7 +104,10 @@ export async function prepareLease(
 
   const assets = await db.asset.findMany({ where: { id: { in: assetIds } } });
   if (assets.length !== assetIds.length) return { ok: false, reason: 'asset_not_found' };
-  if (assets.some((a) => a.status !== 'available'))
+  // A new lease needs an available item; a second life needs one that is back with us.
+  const leasable = input.secondLife ? 'returned' : 'available';
+  if (input.secondLife && input.items.length !== 1) return { ok: false, reason: 'duplicate_item' };
+  if (assets.some((a) => a.status !== leasable))
     return { ok: false, reason: 'asset_not_available' };
 
   if (input.applicationId) {
@@ -113,13 +127,15 @@ export async function prepareLease(
     const quoted = listPriceOn(data.priceLists, id, input.quotedOn);
     const signing = listPriceOn(data.priceLists, id, input.signedOn);
     if (!asset || !quoted.ok || !signing.ok) return { ok: false, reason: 'no_price_on_date' };
+    // Second life: the refurbished item's market value is the price, on both dates.
+    const second = input.secondLife?.priceCents;
     items.push({
       assetId: id,
       lifeNumber: asset.previous_lives + 1,
       quantity: quantity ?? 1,
-      quotedPriceCents: quoted.priceCents,
+      quotedPriceCents: second ?? quoted.priceCents,
       quotedPriceListVersion: quoted.priceListVersion,
-      signingPriceCents: signing.priceCents,
+      signingPriceCents: second ?? signing.priceCents,
       signingPriceListVersion: signing.priceListVersion,
     });
   }
@@ -175,6 +191,7 @@ export async function signLease(
         lockReason: contract.lockReason,
         priceListVersion: contract.priceListVersion,
         invoices: schedule.invoices.length,
+        ...(input.secondLife ? { secondLife: input.secondLife } : {}),
       },
     },
     async (tx) => {
@@ -205,7 +222,13 @@ export async function signLease(
       await tx.contract.create({ data: toContractRow(contract, applicationId, schedule.invoices) });
       await tx.asset.updateMany({
         where: { id: { in: assetIds } },
-        data: { status: 'reserved' },
+        data: input.secondLife
+          ? {
+              status: 'reserved',
+              condition: input.secondLife.conditionAfter,
+              usage_value: input.secondLife.usageAfter,
+            }
+          : { status: 'reserved' },
       });
     }
   );
