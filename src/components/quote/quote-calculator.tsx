@@ -44,6 +44,13 @@ export function QuoteCalculator({
 }: Props) {
   const t = getT(locale);
   const eur = (cents: number) => formatEuro(cents, intlLocale[locale]);
+  // Round amounts on the suggestion buttons, without cents, so five fit on one line.
+  const wholeEur = (cents: number) =>
+    new Intl.NumberFormat(intlLocale[locale], {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: 0,
+    }).format(cents / 100);
   const termId = useId();
   const downId = useId();
   const [termIndex, setTermIndex] = useState(2); // 36 months
@@ -70,14 +77,14 @@ export function QuoteCalculator({
   const comparison = compareTerms(table, {
     listPriceCents,
     downPaymentCents,
-    terms: [24, 36],
+    terms: TERMS,
     vatRates,
     startDate: quoteDate,
   });
   const ratePercent = formatNumber((priced?.vatRateBp ?? 0) / 100, locale);
 
   return (
-    <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+    <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
       <section
         aria-labelledby="quote-title"
         className="flex flex-col gap-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900"
@@ -156,7 +163,8 @@ export function QuoteCalculator({
             <div
               role="group"
               aria-label={t('quote.downSuggestions')}
-              className="flex flex-wrap gap-2"
+              className="grid gap-2"
+              style={{ gridTemplateColumns: `repeat(${suggestions.length}, minmax(0, 1fr))` }}
             >
               {suggestions.map((cents) => {
                 const selected = cents === downPaymentCents;
@@ -166,13 +174,13 @@ export function QuoteCalculator({
                     type="button"
                     aria-pressed={selected}
                     onClick={() => setRequestedDownCents(cents)}
-                    className={`min-h-10 rounded-full border px-4 text-sm font-semibold ${
+                    className={`min-h-10 rounded-full border px-1 text-sm font-semibold whitespace-nowrap ${
                       selected
                         ? 'border-emerald-700 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100'
                         : 'border-stone-300 bg-white hover:border-stone-500 dark:border-stone-700 dark:bg-stone-900'
                     }`}
                   >
-                    {cents === 0 ? t('quote.downNone') : eur(cents)}
+                    {cents === 0 ? t('quote.downNone') : wholeEur(cents)}
                   </button>
                 );
               })}
@@ -262,7 +270,7 @@ export function QuoteCalculator({
       ) : null}
 
       <div className="lg:col-span-2">
-        <TermComparison locale={locale} comparison={comparison} />
+        <TermComparison locale={locale} comparison={comparison} selectedTerm={termMonths} />
       </div>
     </div>
   );

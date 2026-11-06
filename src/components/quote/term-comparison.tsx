@@ -1,14 +1,19 @@
-// "24 or 36 months?": the same item and down payment priced for two terms, side by side.
+// Every term side by side for the same item and down payment; the chosen term is highlighted.
 import type { TermComparison as Comparison } from '@/domain/explain';
 import { formatEuro } from '@/domain/money';
 import { getT } from '@/i18n/get-t';
 import { intlLocale, type Locale } from '@/i18n/locales';
 
-export function TermComparison({ locale, comparison }: { locale: Locale; comparison: Comparison }) {
+type Props = { locale: Locale; comparison: Comparison; selectedTerm: number };
+
+export function TermComparison({ locale, comparison, selectedTerm }: Props) {
   const t = getT(locale);
   const eur = (cents: number) => formatEuro(cents, intlLocale[locale]);
-  const [a, b] = comparison.options;
-  if (!a || !b) return null;
+  const options = comparison.options;
+  const a = options[0];
+  if (!a) return null;
+  const chosen = (o: typeof a) =>
+    o.termMonths === selectedTerm ? ' bg-emerald-50 dark:bg-emerald-950' : '';
 
   const rows = [
     { label: t('compare.monthly'), pick: 'monthly' as const },
@@ -39,16 +44,21 @@ export function TermComparison({ locale, comparison }: { locale: Locale; compari
       className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900"
     >
       <h2 id="compare-title" className="text-xl font-semibold">
-        {t('compare.title', { a: a.termMonths, b: b.termMonths })}
+        {t('compare.title')}
       </h2>
       <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{t('compare.intro')}</p>
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[28rem] border-collapse text-left">
+        <table className="w-full min-w-[36rem] border-collapse text-left">
           <thead>
             <tr className="border-b border-stone-200 dark:border-stone-700">
               <td className="py-2" />
-              {[a, b].map((o) => (
-                <th key={o.termMonths} scope="col" className="py-2 text-right font-semibold">
+              {options.map((o) => (
+                <th
+                  key={o.termMonths}
+                  scope="col"
+                  aria-current={o.termMonths === selectedTerm ? 'true' : undefined}
+                  className={'rounded-t-lg px-3 py-2 text-right font-semibold' + chosen(o)}
+                >
                   {t('compare.termHeader', { term: o.termMonths })}
                 </th>
               ))}
@@ -60,11 +70,13 @@ export function TermComparison({ locale, comparison }: { locale: Locale; compari
                 <th scope="row" className="py-2.5 font-normal text-stone-600 dark:text-stone-400">
                   {row.label}
                 </th>
-                {[a, b].map((o) => (
+                {options.map((o) => (
                   <td
                     key={o.termMonths}
                     className={
-                      'py-2.5 text-right font-mono tabular-nums ' +
+                      'px-3 py-2.5 text-right font-mono tabular-nums' +
+                      chosen(o) +
+                      ' ' +
                       (best(o, row.pick)
                         ? 'font-semibold text-emerald-800 dark:text-emerald-300'
                         : '')

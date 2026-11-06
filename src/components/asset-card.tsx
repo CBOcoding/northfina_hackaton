@@ -11,8 +11,8 @@ import { intlLocale, type Locale } from '@/i18n/locales';
 const statusStyles: Record<AssetStatus, { badge: string; dot: string }> = {
   available: {
     badge:
-      'bg-emerald-50 text-emerald-900 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800',
-    dot: 'bg-emerald-600 dark:bg-emerald-400',
+      'bg-green-50 text-green-900 ring-green-200 dark:bg-green-950 dark:text-green-200 dark:ring-green-800',
+    dot: 'bg-green-600 dark:bg-green-400',
   },
   reserved: {
     badge:
