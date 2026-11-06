@@ -181,7 +181,7 @@
   "apply.term.option": "{months} månader",
   "apply.field.down": "Handpenning i euro (valfritt)",
   "apply.field.downHelp": "Betalas i början. Högre handpenning ger lägre månadshyra. Lämna tomt för ingen.",
-  "apply.downTooHigh": "Handpenningen måste vara lägre än varans pris.",
+  "apply.downTooHigh": "Du kan betala högst {max} i handpenning på det här leasingavtalet: halva priset, och minst 300 € kvar att finansiera.",
   "apply.moneyHint": "Belopp i euro, till exempel 2500",
   "apply.moneyBad": "Skriv ett belopp som 2500 eller 2500,50.",
   "apply.listHint": "En post per rad.",

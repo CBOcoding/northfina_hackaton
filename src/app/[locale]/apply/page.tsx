@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { ApplyForm, type ApplyAsset } from '@/components/apply/apply-form';
 import { TERMS } from '@/components/apply/helpers';
-import { loadCustomers, loadPriceLists, loadQuestions } from '@/data/load';
+import { loadCoefficientTable, loadCustomers, loadPriceLists, loadQuestions } from '@/data/load';
 import { listPriceOn } from '@/domain/price-list';
 import type { TermMonths } from '@/domain/types';
 import { getT } from '@/i18n/get-t';
@@ -25,11 +25,12 @@ export default async function ApplyPage({ params, searchParams }: PageProps<'/[l
 
   const t = getT(locale);
   const today = todayIso();
-  const [{ questions }, customers, priceLists, rows] = await Promise.all([
+  const [{ questions }, customers, priceLists, rows, table] = await Promise.all([
     loadQuestions(),
     loadCustomers(),
     loadPriceLists(),
     listAssets(db),
+    loadCoefficientTable(),
   ]);
 
   const assets: ApplyAsset[] = rows.flatMap((a) => {
@@ -72,6 +73,7 @@ export default async function ApplyPage({ params, searchParams }: PageProps<'/[l
           questions={questions}
           customers={customers}
           assets={assets}
+          table={table}
           initial={initial}
         />
       )}
