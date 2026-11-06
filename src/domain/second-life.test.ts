@@ -98,6 +98,22 @@ describe('matchSecondLife, card 9: ebike-007', () => {
   });
 });
 
+describe('matchSecondLife, served people', () => {
+  it('someone who already got an item never wins again: ebike-007 goes to wait-02', () => {
+    const match = matchSecondLife({
+      ...base,
+      asset: ebike007,
+      listPriceCents: 576_400,
+      served: ['wait-13'],
+    });
+    expect(byId(match, 'wait-13')?.excludedBecause).toBe('already_served');
+    expect(byId(match, 'wait-13')?.quote).toBeNull();
+    expect(match.winner?.request.id).toBe('wait-02');
+    expect(match.winner?.quote?.monthlyNetCents).toBe(6_822); // fair, 12 months, no repair
+    expect(match.winner?.quote?.termMonths).toBe(12);
+  });
+});
+
 describe('matchSecondLife, card 10: ebike-008', () => {
   it('goes to the most urgent person (wait-05) and skips an upgrade that does not pay', () => {
     const match = matchSecondLife({ ...base, asset: ebike008, listPriceCents: 188_900 });

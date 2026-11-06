@@ -1,6 +1,7 @@
 // Second life of a returned item: refurbish or not, who on the waiting list gets it and at
 // what rent, with every number shown. Then its passport and the CO₂ its lives saved.
 // The rules live in src/domain/second-life.ts and circular-impact.ts; this page only shows them.
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
@@ -27,7 +28,19 @@ import { getT } from '@/i18n/get-t';
 import { intlLocale, isLocale } from '@/i18n/locales';
 import { toAsset } from '@/server/assets';
 import { db } from '@/server/db';
+import { servedWaitingListIds } from '@/server/second-life';
 import { todayIso } from '@/server/today';
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/second-life/[assetId]'>): Promise<Metadata> {
+  const { assetId } = await params;
+  const asset = await db.asset.findUnique({
+    where: { id: assetId },
+    select: { make: true, model: true },
+  });
+  return asset ? { title: `${asset.make} ${asset.model} · Lease Loop` } : {};
+}
 
 export default async function SecondLifePage({
   params,
@@ -57,15 +70,17 @@ export default async function SecondLifePage({
       select: {
         life_number: true,
         list_price_cents: true,
-        contract: { select: { number: true, signed_on: true } },
+        contract: { select: { number: true, signed_on: true, status: true } },
       },
       orderBy: { life_number: 'asc' },
     }),
   ]);
 
   const price = listPriceOn(priceLists, asset.id, today);
+  const returned = asset.status === 'returned';
+  const served = returned ? await servedWaitingListIds(db, demand) : [];
   const match =
-    asset.status === 'returned' && price.ok
+    returned && price.ok
       ? matchSecondLife({
           asset,
           listPriceCents: price.priceCents,
@@ -74,6 +89,7 @@ export default async function SecondLifePage({
           costs,
           curves,
           table,
+          served,
         })
       : null;
   const winner = match?.winner ?? null;
@@ -88,18 +104,23 @@ export default async function SecondLifePage({
           usageValue: plan.usageAfter,
         })
       : null;
-  // The next life is either the one we would sign now, or the one already signed (its locked
-  // price is the market value it went out at), so the passport keeps its CO₂ after signing.
-  const signedNext = contractRows.find((c) => c.life_number === asset.previous_lives + 1);
-  const nextValueCents = winner?.valueAfterCents ?? signedNext?.list_price_cents ?? null;
+  // A signed life keeps its CO₂: its locked price is the market value it went out at.
   const impact = circularImpact(co2, {
     category: asset.category,
     previousLives: asset.previous_lives,
-    nextLife:
-      nextValueCents !== null && price.ok
-        ? { valueAfterCents: nextValueCents, listPriceCents: price.priceCents }
-        : null,
+    listPriceCents: price.ok ? price.priceCents : 0,
+    recorded: contractRows.map((c) => ({ life: c.life_number, valueCents: c.list_price_cents })),
+    nextValueCents: winner?.valueAfterCents ?? null,
   });
+  // Signed but not back yet: the item is out on the life after its previous ones.
+  const outNow = returned
+    ? undefined
+    : contractRows.find(
+        (c) => c.life_number === asset.previous_lives + 1 && c.contract.status === 'active'
+      );
+  const winnerWho = winner
+    ? `${tOr(t, `secondLife.who.${winner.request.id}`, winner.request.who)} (${winner.request.id})`
+    : null;
 
   const whyKey = match?.decidedBy ?? 'only';
   const card =
@@ -120,15 +141,29 @@ export default async function SecondLifePage({
         {asset.make} {asset.model}
       </h1>
       <p className="mt-1 text-lg text-stone-700 dark:text-stone-300">
-        {t('secondLife.subtitle', {
-          condition: cond(asset.condition),
-          usage: t(`usage.${asset.usage.unit}`, { value: num(asset.usage.value) }),
-          lives: asset.previous_lives,
-        })}
+        {outNow ? (
+          <Link
+            href={`/${locale}/contracts/${outNow.contract.number}`}
+            className="font-medium text-emerald-800 underline underline-offset-4 dark:text-emerald-300"
+          >
+            {t('secondLife.outOnLife', {
+              n: outNow.life_number,
+              number: outNow.contract.number,
+            })}
+          </Link>
+        ) : (
+          t('secondLife.subtitle', {
+            condition: cond(asset.condition),
+            usage: t(`usage.${asset.usage.unit}`, { value: num(asset.usage.value) }),
+            lives: asset.previous_lives,
+          })
+        )}
       </p>
 
-      {asset.status !== 'returned' ? (
-        <p className={`mt-8 text-lg ${card}`}>{t('secondLife.notReturned')}</p>
+      {!returned ? (
+        outNow ? null : (
+          <p className={`mt-8 text-lg ${card}`}>{t('secondLife.notReturned')}</p>
+        )
       ) : !winner || !plan || !winner.quote || !factors ? (
         <p className={`mt-8 text-lg ${card}`}>{t('secondLife.nobody')}</p>
       ) : (
@@ -138,7 +173,7 @@ export default async function SecondLifePage({
             className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 p-6 text-emerald-950 sm:p-8 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-100"
           >
             <h2 id="next-title" className="text-2xl font-semibold sm:text-3xl">
-              {t('secondLife.nextTitle', { who: `${winner.request.who} (${winner.request.id})` })}
+              {t('secondLife.nextTitle', { who: winnerWho ?? '' })}
             </h2>
             <p className="mt-3 text-2xl font-semibold tabular-nums">
               {t('secondLife.rent', {
@@ -151,6 +186,7 @@ export default async function SecondLifePage({
                 who: winner.request.id,
                 other: match?.runnerUp?.request.id ?? '',
                 date: formatIsoDate(winner.request.needed_by, locale),
+                condition: match?.runnerUp ? cond(match.runnerUp.request.min_condition) : '',
               })}
             </p>
             <LeaseAgain
@@ -256,7 +292,7 @@ export default async function SecondLifePage({
           signedOn: c.contract.signed_on,
           lifeNumber: c.life_number,
         }))}
-        nextWho={winner ? `${winner.request.who} (${winner.request.id})` : null}
+        nextWho={winnerWho}
         impact={impact}
         locale={locale}
         t={t}

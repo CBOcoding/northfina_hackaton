@@ -1,11 +1,30 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadRefurbishmentCosts } from '@/data/load';
-import type { RefurbishmentCosts } from '@/data/schemas';
-import { betterCondition, planRefurbishment, timesApplied } from './refurbishment';
+import { assetConditionSchema, type RefurbishmentCosts } from '@/data/schemas';
+import {
+  betterCondition,
+  CONDITION_ORDER,
+  conditionRank,
+  planRefurbishment,
+  timesApplied,
+} from './refurbishment';
 
 let costs: RefurbishmentCosts;
 beforeAll(async () => {
   costs = await loadRefurbishmentCosts();
+});
+
+describe('CONDITION_ORDER / conditionRank', () => {
+  it('ranks every condition from worst to best, each exactly once', () => {
+    expect(CONDITION_ORDER).toEqual(['poor', 'fair', 'good', 'like_new', 'new']);
+    expect([...CONDITION_ORDER].sort()).toEqual([...assetConditionSchema.options].sort());
+    expect(CONDITION_ORDER.map(conditionRank)).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('a better condition has a higher rank', () => {
+    expect(conditionRank('good')).toBeGreaterThan(conditionRank('fair'));
+    expect(conditionRank('poor')).toBeLessThan(conditionRank('new'));
+  });
 });
 
 describe('timesApplied', () => {
