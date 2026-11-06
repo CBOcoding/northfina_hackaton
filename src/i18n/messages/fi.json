@@ -181,7 +181,7 @@
   "apply.term.option": "{months} kuukautta",
   "apply.field.down": "Käsiraha euroina (valinnainen)",
   "apply.field.downHelp": "Maksetaan alussa. Suurempi käsiraha tarkoittaa pienempää kuukausivuokraa. Jätä tyhjäksi, jos et halua maksaa.",
-  "apply.downTooHigh": "Käsirahan täytyy olla pienempi kuin kohteen hinta.",
+  "apply.downTooHigh": "Tähän leasingiin voit maksaa käsirahaa enintään {max}: puolet hinnasta, ja rahoitettavaa on jäätävä vähintään 300 €.",
   "apply.moneyHint": "Summa euroina, esimerkiksi 2500",
   "apply.moneyBad": "Kirjoita summa, esimerkiksi 2500 tai 2500,50.",
   "apply.listHint": "Yksi merkintä per rivi.",

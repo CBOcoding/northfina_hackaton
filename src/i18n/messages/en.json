@@ -181,7 +181,7 @@
   "apply.term.option": "{months} months",
   "apply.field.down": "Down payment in euro (optional)",
   "apply.field.downHelp": "Paid at the start. A bigger down payment means a smaller monthly rent. Leave empty for none.",
-  "apply.downTooHigh": "The down payment must be smaller than the price of the item.",
+  "apply.downTooHigh": "The most you can pay down on this lease is {max}: half the price, and at least 300 € left to finance.",
   "apply.moneyHint": "Amount in euro, for example 2500",
   "apply.moneyBad": "Please type an amount like 2500 or 2500,50.",
   "apply.listHint": "One entry per line.",

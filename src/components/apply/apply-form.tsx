@@ -3,13 +3,14 @@
 // The application form. All state lives here; which questions show, and which answers are
 // cleared, is computed with the domain (question-flow, application), never in the JSX.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Customer, Question } from '@/data/schemas';
+import type { CoefficientTable, Customer, Question } from '@/data/schemas';
 import {
   answersFromCustomer,
   customerFromAnswers,
   dealFor,
   RECORD_QUESTION_IDS,
 } from '@/domain/application';
+import { maxDownPaymentCents } from '@/domain/down-payment';
 import { formatEuro } from '@/domain/money';
 import {
   pruneAnswers,
@@ -45,6 +46,8 @@ type Props = {
   questions: Question[];
   customers: Customer[];
   assets: ApplyAsset[];
+  /** For the down payment limit: the same rule as the quote page. */
+  table: CoefficientTable;
   initial: ApplyInitial;
 };
 
@@ -85,7 +88,7 @@ function dealOf(
   });
 }
 
-export function ApplyForm({ locale, questions, customers, assets, initial }: Props) {
+export function ApplyForm({ locale, questions, customers, assets, table, initial }: Props) {
   const t = useMemo(() => getT(locale), [locale]);
   const money = (cents: number) => formatEuro(cents, intlLocale[locale]);
   // The page renders this form only when there is at least one person and one item.
@@ -129,7 +132,9 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
   const qty = parseQty(inputs.qtyText);
   const downCents = parseDown(inputs.downText);
   const listCents = asset.priceCents * (qty ?? 1);
-  const downTooHigh = downCents !== null && downCents >= listCents;
+  // Same limit as the quote page: at most half the price, at least 300 € left to finance.
+  const maxDownCents = maxDownPaymentCents(table, listCents);
+  const downTooHigh = downCents !== null && downCents > 0 && downCents > maxDownCents;
   const deal = dealOf(customer, asset, qty ?? 1, downCents ?? 0, inputs.term, answers);
   const visible = visibleQuestions(questions, deal, answers);
   const missing = visible.filter(
@@ -324,7 +329,7 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
               {bad(downCents === null)
                 ? t('apply.moneyBad')
                 : bad(downTooHigh)
-                  ? t('apply.downTooHigh')
+                  ? t('apply.downTooHigh', { max: money(maxDownCents) })
                   : t('apply.field.downHelp')}
             </p>
           </div>

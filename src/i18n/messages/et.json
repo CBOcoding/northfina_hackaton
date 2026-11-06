@@ -181,7 +181,7 @@
   "apply.term.option": "{months} kuud",
   "apply.field.down": "Sissemakse eurodes (valikuline)",
   "apply.field.downHelp": "Makstakse alguses. Suurem sissemakse tähendab väiksemat kuutasu. Jäta tühjaks, kui ei soovi.",
-  "apply.downTooHigh": "Sissemakse peab olema väiksem kui eseme hind.",
+  "apply.downTooHigh": "Selle liisingu sissemakse võib olla kuni {max}: pool hinnast ja rahastada peab jääma vähemalt 300 €.",
   "apply.moneyHint": "Summa eurodes, näiteks 2500",
   "apply.moneyBad": "Sisesta summa, näiteks 2500 või 2500,50.",
   "apply.listHint": "Üks kirje rea kohta.",
