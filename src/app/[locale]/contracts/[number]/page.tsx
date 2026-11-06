@@ -50,17 +50,22 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
   // Rebuild the price-lock decision from the stored dates, to show both prices side by side.
   const quotedOn = application?.application.quoted_on ?? contract.signedOn;
   const items: SigningItem[] = [];
+  // Quoted and signed on the same day: the stored price is the one that was locked (for a
+  // second life it is the market value after refurbishment, not the price list).
+  const sameDay = quotedOn === contract.signedOn;
+  let secondLife = false;
   for (const item of contract.items) {
     const quoted = listPriceOn(priceLists, item.assetId, quotedOn);
     const signing = listPriceOn(priceLists, item.assetId, contract.signedOn);
     if (quoted.ok && signing.ok) {
+      if (item.lifeNumber > 1 && item.listPriceCents !== signing.priceCents) secondLife = true;
       items.push({
         assetId: item.assetId,
         lifeNumber: item.lifeNumber,
         quantity: item.quantity,
-        quotedPriceCents: quoted.priceCents,
+        quotedPriceCents: sameDay ? item.listPriceCents : quoted.priceCents,
         quotedPriceListVersion: quoted.priceListVersion,
-        signingPriceCents: signing.priceCents,
+        signingPriceCents: sameDay ? item.listPriceCents : signing.priceCents,
         signingPriceListVersion: signing.priceListVersion,
       });
     }
@@ -142,7 +147,13 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
         </p>
       </div>
 
-      <ContractTerms locale={locale} contract={contract} lock={lock} quotedOn={quotedOn} />
+      <ContractTerms
+        locale={locale}
+        contract={contract}
+        lock={lock}
+        quotedOn={quotedOn}
+        secondLife={secondLife}
+      />
       <TimeTravel
         locale={locale}
         invoices={invoices}

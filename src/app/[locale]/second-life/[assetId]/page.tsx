@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
+import { LeaseAgain } from '@/components/second-life/lease-again';
 import { Passport } from '@/components/second-life/passport';
 import { WaitingList } from '@/components/second-life/waiting-list';
 import { tOr } from '@/components/apply/helpers';
@@ -53,7 +54,11 @@ export default async function SecondLifePage({
     loadCo2Factors(),
     db.contractAsset.findMany({
       where: { asset_id: assetId },
-      select: { life_number: true, contract: { select: { number: true, signed_on: true } } },
+      select: {
+        life_number: true,
+        list_price_cents: true,
+        contract: { select: { number: true, signed_on: true } },
+      },
       orderBy: { life_number: 'asc' },
     }),
   ]);
@@ -83,12 +88,16 @@ export default async function SecondLifePage({
           usageValue: plan.usageAfter,
         })
       : null;
+  // The next life is either the one we would sign now, or the one already signed (its locked
+  // price is the market value it went out at), so the passport keeps its CO₂ after signing.
+  const signedNext = contractRows.find((c) => c.life_number === asset.previous_lives + 1);
+  const nextValueCents = winner?.valueAfterCents ?? signedNext?.list_price_cents ?? null;
   const impact = circularImpact(co2, {
     category: asset.category,
     previousLives: asset.previous_lives,
     nextLife:
-      winner?.valueAfterCents != null && price.ok
-        ? { valueAfterCents: winner.valueAfterCents, listPriceCents: price.priceCents }
+      nextValueCents !== null && price.ok
+        ? { valueAfterCents: nextValueCents, listPriceCents: price.priceCents }
         : null,
   });
 
@@ -144,6 +153,16 @@ export default async function SecondLifePage({
                 date: formatIsoDate(winner.request.needed_by, locale),
               })}
             </p>
+            <LeaseAgain
+              locale={locale}
+              assetId={asset.id}
+              who={winner.request.id}
+              help={t('secondLife.leaseAgainHelp', {
+                term: winner.quote.termMonths,
+                rent: eur(winner.quote.monthlyNetCents),
+                condition: cond(plan.conditionAfter),
+              })}
+            />
           </section>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
