@@ -17,6 +17,27 @@ export const RECORD_QUESTION_IDS = [
   'q_business_id',
 ] as const;
 
+/**
+ * Questions the record answers for this customer: the identity ones always, and q_can_sign when
+ * the record says the applicant cannot sign (a "yes" must not give them that right).
+ */
+export function recordQuestionIds(base: Customer): string[] {
+  const ids: string[] = [...RECORD_QUESTION_IDS];
+  if (base.type === 'company' && !base.applicant_can_sign) ids.push('q_can_sign');
+  return ids;
+}
+
+/** `answers` with every record question answered by the record (removed if the record has no answer). */
+export function withRecordAnswers(base: Customer, answers: Answers): Answers {
+  const given: Record<string, Answers[string]> = { ...answers };
+  const fromRecord = answersFromCustomer(base);
+  for (const id of recordQuestionIds(base)) {
+    if (fromRecord[id] === undefined) delete given[id];
+    else given[id] = fromRecord[id];
+  }
+  return given;
+}
+
 /** The answers a persona would give, keyed by question id. Questions that do not apply are pruned later. */
 export function answersFromCustomer(customer: Customer): Answers {
   const answers: Record<string, string | number | readonly string[]> = {

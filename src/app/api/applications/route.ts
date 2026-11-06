@@ -11,15 +11,16 @@ const bodySchema = z.strictObject({
   customerId: z.string().min(1),
   items: z
     .array(
-      z.strictObject({ assetId: z.string().min(1), quantity: z.number().int().min(1).max(1000) })
+      // Every item is unique: one unit per item.
+      z.strictObject({ assetId: z.string().min(1), quantity: z.number().int().min(1).max(1) })
     )
     .min(1)
     .max(50)
     .refine((items) => new Set(items.map((i) => i.assetId)).size === items.length, {
-      message: 'each asset may appear once; use quantity for several units',
+      message: 'each asset may appear once',
     }),
   termMonths: z.union([z.literal(12), z.literal(24), z.literal(36), z.literal(48)]),
-  downPaymentCents: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  downPaymentCents: z.number().int().min(0).max(2_147_483_647),
   // Bounded: answers are stored as JSON.
   answers: z
     .record(
@@ -44,6 +45,13 @@ export const POST = handleRoute(async (request) => {
       return fail(404, 'ASSET_NOT_FOUND', `No asset with id "${result.id}"`);
     case 'price_not_available':
       return fail(409, 'PRICE_NOT_AVAILABLE', `No list price for asset "${result.id}" today`);
+    case 'down_payment_too_high':
+      return fail(
+        400,
+        'DOWN_PAYMENT_TOO_HIGH',
+        'The down payment is above the maximum',
+        result.maxCents
+      );
     case 'asset_not_available':
       return fail(409, 'ASSET_NOT_AVAILABLE', `Asset "${result.id}" is not available`);
   }

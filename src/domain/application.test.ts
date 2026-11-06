@@ -7,8 +7,11 @@ import {
   dealFor,
   missingQuestionIds,
   RECORD_QUESTION_IDS,
+  recordQuestionIds,
+  withRecordAnswers,
 } from './application';
 import { evaluateEligibility } from './eligibility';
+import { pruneAnswers } from './question-flow';
 
 let customers: Customer[];
 let questions: Question[];
@@ -95,6 +98,42 @@ describe('answersFromCustomer / customerFromAnswers', () => {
       q_monthly_income: 12_300,
     });
     expect(back).toMatchObject({ email: 'new@example.com', monthly_net_income_cents: 12_300 });
+  });
+});
+
+describe('recordQuestionIds / withRecordAnswers', () => {
+  const norviDeal = dealFor({
+    customerType: 'company',
+    category: 'e_bike',
+    financedCents: 576_400,
+    termMonths: 24,
+  });
+
+  it('a record saying the applicant cannot sign answers q_can_sign; one saying they can does not', () => {
+    const norvi = customers.find((c) => c.id === 'cust-norvi')!;
+    expect(recordQuestionIds(norvi)).toEqual([...RECORD_QUESTION_IDS, 'q_can_sign']);
+    const signer = customers.find((c) => c.type === 'company' && c.applicant_can_sign)!;
+    expect(recordQuestionIds(signer)).toEqual([...RECORD_QUESTION_IDS]);
+    expect(withRecordAnswers(signer, { q_can_sign: 'no' }).q_can_sign).toBe('no');
+  });
+
+  it('card 6: Norvi answering "yes" without an email still has to give the signatory email', () => {
+    const norvi = customers.find((c) => c.id === 'cust-norvi')!;
+    const given = withRecordAnswers(norvi, { ...answersFromCustomer(norvi), q_can_sign: 'yes' });
+    expect(given.q_can_sign).toBe('no');
+    const { answers } = pruneAnswers(questions, norviDeal, given);
+    expect(missingQuestionIds(questions, norviDeal, answers)).toContain('q_signatory_email');
+  });
+
+  it('replaces identity answers with the record and removes those the record has no fact for', () => {
+    const norvi = customers.find((c) => c.id === 'cust-norvi')!;
+    const given = withRecordAnswers(norvi, {
+      q_customer_type: 'sole_trader',
+      q_birth_date: '1980-01-01',
+      q_email: 'me@example.com',
+    });
+    expect(given).toMatchObject({ q_customer_type: 'company', q_email: 'me@example.com' });
+    expect(given).not.toHaveProperty('q_birth_date');
   });
 });
 
