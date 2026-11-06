@@ -49,6 +49,23 @@ export function AssetCard({ asset, price, offer, locale, t }: AssetCardProps) {
           : offer?.kind === 'too_cheap'
             ? t('catalogue.reasonTooCheap', { amount: euro(offer.minCents) })
             : null;
+    if (asset.status === 'returned') {
+      return (
+        <>
+          <p className="mb-2 text-stone-700 dark:text-stone-300">{reason}</p>
+          <Link
+            href={`/${locale}/second-life/${asset.id}`}
+            className="inline-flex min-h-11 items-center rounded-full border border-emerald-800 px-5 font-medium text-emerald-900 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-emerald-300 dark:text-emerald-200 dark:hover:bg-emerald-950"
+          >
+            {t('catalogue.seeSecondLife')}
+            <span className="sr-only">
+              {' '}
+              {asset.make} {asset.model}
+            </span>
+          </Link>
+        </>
+      );
+    }
     if (reason) return <p className="text-stone-700 dark:text-stone-300">{reason}</p>;
     if (!offer) return null;
     return (

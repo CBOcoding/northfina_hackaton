@@ -46,6 +46,8 @@ export type SecondLifeCandidate = {
   /** Value as returned, and after refurbishment (the new price). */
   valueBeforeCents: Cents;
   valueAfterCents: Cents | null;
+  /** Value the condition upgrades add (after minus the same item without them). */
+  upgradeGainCents: Cents | null;
   quote: Quote | null;
   excludedBecause: SecondLifeExclusion | null;
 };
@@ -96,7 +98,7 @@ function candidateFor(
     }).valueCents;
   const valueBeforeCents = value(asset.condition, asset.usage.value);
   const base = { request, listIndex, valueBeforeCents };
-  const none = { plan: null, valueAfterCents: null, quote: null };
+  const none = { plan: null, valueAfterCents: null, upgradeGainCents: null, quote: null };
 
   if (request.needed_by < today) return { ...base, ...none, excludedBecause: 'deadline_passed' };
 
@@ -106,9 +108,9 @@ function candidateFor(
   const { plan } = refurb;
 
   const valueAfterCents = value(plan.conditionAfter, plan.usageAfter);
-  const withoutUpgrade = value(asset.condition, plan.usageAfter);
-  const priced = { ...base, plan, valueAfterCents };
-  if (valueAfterCents - withoutUpgrade < plan.upgradeCents) {
+  const upgradeGainCents = valueAfterCents - value(asset.condition, plan.usageAfter);
+  const priced = { ...base, plan, valueAfterCents, upgradeGainCents };
+  if (upgradeGainCents < plan.upgradeCents) {
     return { ...priced, quote: null, excludedBecause: 'upgrade_not_worth_it' };
   }
 

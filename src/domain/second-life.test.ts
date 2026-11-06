@@ -68,6 +68,8 @@ describe('matchSecondLife, card 9: ebike-007', () => {
     // 576 400 × 0.325 × 0.85 (good) × 1.00 (new battery, 0 km) = 159 230.5 → 159 231
     expect(match.winner?.valueAfterCents).toBe(159_231);
     expect(match.winner?.plan?.totalCents).toBe(51_500);
+    // fair → good adds 159 231 − 121 765 of value for 12 000 of work: worth it
+    expect(match.winner?.upgradeGainCents).toBe(37_466);
     expect(match.winner?.quote?.band).toBe('A');
     expect(match.winner?.quote?.monthlyNetCents).toBe(5_834); // × 0.036637
     // Same deadline and budget as wait-02, but wait-02 also accepts fair.
