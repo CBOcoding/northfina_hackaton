@@ -48,13 +48,13 @@ export default async function ApplyPage({ params, searchParams }: PageProps<'/[l
       : [];
   });
 
-  const qty = Number(first(query.qty));
   const term = Number(first(query.term));
   const down = Number(first(query.down)); // integer euro cents
   const initial = {
     customerId: customers.find((c) => c.id === first(query.customer))?.id ?? customers[0]?.id ?? '',
     assetId: assets.find((a) => a.id === first(query.asset))?.id ?? assets[0]?.id ?? '',
-    qty: Number.isInteger(qty) && qty >= 1 && qty <= 99 ? qty : 1,
+    // Every item in the data is unique (one serial number), so an application is for one unit.
+    qty: 1,
     term: (TERMS.includes(term as TermMonths) ? term : 36) as TermMonths,
     downCents: Number.isSafeInteger(down) && down >= 0 ? down : 0,
   };

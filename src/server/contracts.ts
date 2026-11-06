@@ -116,7 +116,12 @@ export async function prepareLease(
       include: { contract: true },
     });
     if (!application) return { ok: false, reason: 'application_not_found' };
-    if (application.decision !== 'approved')
+    if (
+      !isSignable({
+        decision: application.decision,
+        reasons: parseReasons(application.reasons_json),
+      })
+    )
       return { ok: false, reason: 'application_not_approved' };
     if (application.contract) return { ok: false, reason: 'application_already_signed' };
   }
@@ -383,6 +388,8 @@ export type SignableApplication = {
   termMonths: number;
   downPaymentCents: number;
   decision: string;
+  /** Eligibility reason codes, e.g. SIGNATORY_REQUIRED. */
+  reasons: string[];
   answers: Record<string, unknown>;
   items: { assetId: string; quantity: number }[];
   /** Set when this application was already signed. */
@@ -407,6 +414,7 @@ export async function getSignableApplication(
     termMonths: row.term_months,
     downPaymentCents: row.down_payment_cents,
     decision: row.decision,
+    reasons: parseReasons(row.reasons_json),
     answers,
     items: row.items.map((i) => ({ assetId: i.asset_id, quantity: i.quantity })),
     contractNumber: row.contract?.number ?? null,
@@ -443,6 +451,36 @@ export async function signApplication(
     ...leaseFromApplication(application, input.signedBy, input.signedOn),
     actor: input.actor,
   });
+}
+
+/**
+ * Can this application be signed? Approved ones can. So can one that only waits for the
+ * company's authorised signatory (card 6): that person signs it, the applicant cannot.
+ */
+export function isSignable(application: { decision: string; reasons: readonly string[] }): boolean {
+  if (application.decision === 'approved') return true;
+  return (
+    application.decision === 'pending' &&
+    application.reasons.length > 0 &&
+    application.reasons.every((code) => code === 'SIGNATORY_REQUIRED')
+  );
+}
+
+/** Stored reason codes; accepts [{ code }] or ["CODE"], broken JSON counts as none. */
+function parseReasons(json: string): string[] {
+  try {
+    const value: unknown = JSON.parse(json);
+    if (!Array.isArray(value)) return [];
+    return value.flatMap((r: unknown) =>
+      typeof r === 'string'
+        ? [r]
+        : r !== null && typeof r === 'object' && typeof (r as { code?: unknown }).code === 'string'
+          ? [(r as { code: string }).code]
+          : []
+    );
+  } catch {
+    return [];
+  }
 }
 
 /** Stored answers as an object; broken JSON counts as no answers. */

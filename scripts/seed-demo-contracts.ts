@@ -53,18 +53,6 @@ const cards: { card: string; input: Omit<SignLeaseInput, 'actor'> }[] = [
       termMonths: 36,
     },
   },
-  {
-    card: 'Card 6: Norvi Logistics, 4 × ebike-004 signed by its authorised signatory',
-    input: {
-      customerId: 'cust-norvi',
-      signedBy: 'Authorised signatory, Norvi Logistics Oy',
-      items: [{ assetId: 'ebike-004', quantity: 4 }],
-      quotedOn: '2026-11-05',
-      signedOn: '2026-11-05',
-      downPaymentCents: 0,
-      termMonths: 36,
-    },
-  },
 ];
 
 const db = createPrismaClient();
