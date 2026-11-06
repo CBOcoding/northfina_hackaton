@@ -179,13 +179,15 @@ export function EndOfTermPanel(props: Props) {
                   <label className="flex flex-col gap-1">
                     <span className="font-medium">{t('endOfTerm.usage', { unit })}</span>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="off"
                       required
-                      min={item.usageValue}
-                      step={1}
-                      value={report.usageValue}
-                      onChange={(e) => set({ usageValue: Number(e.target.value) })}
+                      value={String(report.usageValue)}
+                      onChange={(e) =>
+                        set({ usageValue: Number(e.target.value.replace(/\D/g, '').slice(0, 7)) })
+                      }
                       className={field}
                     />
                     <span className="text-sm text-stone-600 dark:text-stone-400">
