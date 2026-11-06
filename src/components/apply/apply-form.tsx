@@ -278,10 +278,11 @@ export function ApplyForm({ locale, questions, customers, assets, initial }: Pro
               id="f-qty"
               type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
               value={inputs.qtyText}
               aria-invalid={bad(qty === null)}
               aria-describedby="f-qty-help"
-              onChange={(e) => setInput({ qtyText: e.target.value })}
+              onChange={(e) => setInput({ qtyText: e.target.value.replace(/\D/g, '').slice(0, 2) })}
               className={field}
             />
             <p id="f-qty-help" className={help}>

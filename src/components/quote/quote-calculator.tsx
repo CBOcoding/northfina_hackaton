@@ -6,7 +6,14 @@ import Link from 'next/link';
 import { useId, useState } from 'react';
 import type { CoefficientTable } from '@/data/schemas';
 import { compareTerms, explainPrice, withVat } from '@/domain/explain';
-import { formatEuro, roundHalfUp } from '@/domain/money';
+import {
+  bandHint,
+  clampDownPayment,
+  downPaymentStepCents,
+  maxDownPaymentCents,
+  suggestedDownPayments,
+} from '@/domain/down-payment';
+import { formatEuro } from '@/domain/money';
 import { quoteLease } from '@/domain/pricing';
 import { getT } from '@/i18n/get-t';
 import { formatNumber } from '@/i18n/format';
@@ -15,7 +22,6 @@ import { PriceExplanation } from './price-explanation';
 import { TermComparison } from './term-comparison';
 
 const TERMS = [12, 24, 36, 48] as const;
-const MAX_DOWN_PERCENT = 50;
 
 type Props = {
   locale: Locale;
@@ -31,11 +37,23 @@ export function QuoteCalculator({ locale, assetId, listPriceCents, vatRateBp, ta
   const termId = useId();
   const downId = useId();
   const [termIndex, setTermIndex] = useState(2); // 36 months
-  const [downPercent, setDownPercent] = useState(0);
+  const typedId = useId();
+  const [requestedDownCents, setRequestedDownCents] = useState(0);
 
   const termMonths = TERMS[termIndex] ?? 36;
-  // Down payment in whole cents: list price × percent, rounded once, half up.
-  const downPaymentCents = roundHalfUp(listPriceCents * downPercent, 100);
+  // Down payment in whole euros, moved in steps that grow with the price (see down-payment.ts).
+  const downStepCents = downPaymentStepCents(listPriceCents);
+  const downMaxCents = maxDownPaymentCents(table, listPriceCents);
+  const downPaymentCents = clampDownPayment(table, listPriceCents, requestedDownCents);
+  const suggestions = suggestedDownPayments(table, listPriceCents);
+  const hint = bandHint(table, listPriceCents, downPaymentCents);
+  const downShare = new Intl.NumberFormat(intlLocale[locale], { maximumFractionDigits: 1 }).format(
+    listPriceCents > 0 ? (downPaymentCents * 100) / listPriceCents : 0
+  );
+  const downValue = t('quote.downPaymentValue', {
+    amount: eur(downPaymentCents),
+    percent: downShare,
+  });
   const result = quoteLease(table, { listPriceCents, downPaymentCents, termMonths });
   const priced = result.ok ? withVat(result.quote, vatRateBp) : null;
   const band = result.ok ? table.bands.find((b) => b.band === result.quote.band) : undefined;
@@ -116,36 +134,96 @@ export function QuoteCalculator({ locale, assetId, listPriceCents, vatRateBp, ta
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <div className="flex justify-between gap-3">
             <label htmlFor={downId} className="font-semibold">
               {t('quote.downPayment')}
             </label>
-            <span className="font-mono tabular-nums">
-              {t('quote.downPaymentValue', { amount: eur(downPaymentCents), percent: downPercent })}
-            </span>
+            <span className="font-mono tabular-nums">{downValue}</span>
           </div>
+          {suggestions.length > 1 ? (
+            <div
+              role="group"
+              aria-label={t('quote.downSuggestions')}
+              className="flex flex-wrap gap-2"
+            >
+              {suggestions.map((cents) => {
+                const selected = cents === downPaymentCents;
+                return (
+                  <button
+                    key={cents}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setRequestedDownCents(cents)}
+                    className={`min-h-10 rounded-full border px-4 text-sm font-semibold ${
+                      selected
+                        ? 'border-emerald-700 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100'
+                        : 'border-stone-300 bg-white hover:border-stone-500 dark:border-stone-700 dark:bg-stone-900'
+                    }`}
+                  >
+                    {cents === 0 ? t('quote.downNone') : eur(cents)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <input
             id={downId}
             type="range"
             min={0}
-            max={MAX_DOWN_PERCENT}
-            step={5}
-            value={downPercent}
-            aria-valuetext={t('quote.downPaymentValue', {
-              amount: eur(downPaymentCents),
-              percent: downPercent,
-            })}
-            onChange={(e) => setDownPercent(Number(e.target.value))}
+            max={downMaxCents}
+            step={downStepCents}
+            value={downPaymentCents}
+            disabled={downMaxCents === 0}
+            aria-valuetext={downValue}
+            onChange={(e) => setRequestedDownCents(Number(e.target.value))}
             className="h-8 w-full accent-emerald-700"
           />
           <div
             aria-hidden="true"
-            className="flex justify-between text-xs text-stone-600 dark:text-stone-400"
+            className="flex justify-between gap-2 text-xs text-stone-600 dark:text-stone-400"
           >
-            <span>0 %</span>
-            <span>{MAX_DOWN_PERCENT} %</span>
+            <span>{eur(0)}</span>
+            <span>{t('quote.downStep', { step: eur(downStepCents) })}</span>
+            <span>{t('quote.downMax', { max: eur(downMaxCents) })}</span>
           </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label htmlFor={typedId} className="text-sm text-stone-600 dark:text-stone-300">
+              {t('quote.downTyped')}
+            </label>
+            <input
+              id={typedId}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="0"
+              autoComplete="off"
+              value={downPaymentCents === 0 ? '' : String(downPaymentCents / 100)}
+              disabled={downMaxCents === 0}
+              onChange={(e) =>
+                setRequestedDownCents(Number(e.target.value.replace(/\D/g, '').slice(0, 7)) * 100)
+              }
+              className="min-h-11 w-32 rounded-lg border border-stone-300 bg-white px-3 font-mono tabular-nums dark:border-stone-700 dark:bg-stone-900"
+            />
+          </div>
+          {hint ? (
+            <p className="rounded-lg bg-stone-100 p-3 text-sm text-stone-700 dark:bg-stone-800 dark:text-stone-200">
+              {hint.kind === 'moved'
+                ? t('quote.bandHint.moved', {
+                    band: hint.band,
+                    rate: formatNumber(hint.annualInterestPercent, locale),
+                    originalBand: hint.originalBand,
+                    originalRate: formatNumber(hint.originalInterestPercent, locale),
+                    amount: eur(hint.keepUpToCents),
+                  })
+                : t('quote.bandHint.crosses', {
+                    amount: eur(hint.fromCents),
+                    band: hint.band,
+                    rate: formatNumber(hint.annualInterestPercent, locale),
+                    currentRate: formatNumber(hint.currentInterestPercent, locale),
+                  })}
+            </p>
+          ) : null}
         </div>
 
         <p className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100">
