@@ -201,6 +201,7 @@
   "apply.result.approved.title": "Hyviä uutisia: hyväksytty",
   "apply.result.approved.body": "Hakemuksesi läpäisi kaikki tarkistukset. Seuraava vaihe on allekirjoitettava sopimus.",
   "apply.result.monthly": "Kuukausivuokra sis. alv: {amount}",
+  "apply.result.sign": "Lue ja allekirjoita sopimus",
   "apply.result.rejected.title": "Emme voi hyväksyä tätä juuri nyt",
   "apply.result.rejected.body": "Tämä ei ole tuomio sinusta. Tässä syy selkeästi.",
   "apply.result.pending.title": "Melkein valmista: toisen henkilön on allekirjoitettava",

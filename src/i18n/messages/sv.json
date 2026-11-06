@@ -201,6 +201,7 @@
   "apply.result.approved.title": "Goda nyheter: godkänd",
   "apply.result.approved.body": "Din ansökan klarade alla kontroller. Nästa steg är avtalet som ska undertecknas.",
   "apply.result.monthly": "Månadshyra inkl. moms: {amount}",
+  "apply.result.sign": "Läs och skriv under avtalet",
   "apply.result.rejected.title": "Vi kan inte godkänna detta just nu",
   "apply.result.rejected.body": "Detta är ingen dom över dig. Här är orsaken, med enkla ord.",
   "apply.result.pending.title": "Nästan klart: en annan person måste skriva under",

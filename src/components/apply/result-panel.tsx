@@ -1,6 +1,7 @@
 'use client';
 
 // The outcome of an application: one big headline, then each reason in plain words.
+import Link from 'next/link';
 import { forwardRef } from 'react';
 import { formatEuro } from '@/domain/money';
 import type { Answers } from '@/domain/question-flow';
@@ -64,6 +65,14 @@ export const ResultPanel = forwardRef<HTMLHeadingElement, Props>(function Result
         <p className="mt-4 text-xl font-semibold tabular-nums">
           {t('apply.result.monthly', { amount: formatEuro(monthlyGrossCents, intlLocale[locale]) })}
         </p>
+      ) : null}
+      {decision === 'approved' ? (
+        <Link
+          href={`/${locale}/sign/${result.applicationId}`}
+          className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-emerald-800 px-5 py-2 text-base font-semibold text-white hover:bg-emerald-900 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
+        >
+          {t('apply.result.sign')}
+        </Link>
       ) : null}
 
       {reasons.length > 0 ? (
