@@ -7,6 +7,8 @@
   "nav.language": "Language",
   "catalogue.title": "Catalogue",
   "catalogue.intro": "Every item can be leased, returned, refurbished and leased again.",
+  "catalogue.whatYouCanLease": "What you can lease",
+  "catalogue.jumpTo": "Jump to a category",
   "catalogue.pricesOn": "Net list prices on {date}",
   "catalogue.itemCount": "{count} items",
   "catalogue.empty": "No assets in the database yet. Run npm run db:setup and reload.",

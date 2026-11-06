@@ -1,12 +1,51 @@
 @import 'tailwindcss';
 
+/*
+ * Look and feel in the style of the challenge host's site: a calm blue primary, cool greys,
+ * pill-shaped buttons and the Zalando Sans SemiExpanded typeface. Components keep using
+ * the `emerald` (primary) and `stone` (neutral) names; only the colours behind them change.
+ */
 @theme {
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    var(--font-brand), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial,
+    sans-serif;
+  /* Amounts use the same typeface with tabular figures (set per element), like the host's site. */
+  --font-mono: var(--font-brand), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Primary: blue (#0a44fa on white is 6.6:1, so text in it passes WCAG AA). */
+  --color-emerald-50: #f6f7ff;
+  --color-emerald-100: #e9f0ff;
+  --color-emerald-200: #cddcff;
+  --color-emerald-300: #9dbcff;
+  --color-emerald-400: #67a4ff;
+  --color-emerald-500: #4471ff;
+  --color-emerald-600: #2863fe;
+  --color-emerald-700: #0a44fa;
+  --color-emerald-800: #002ae4;
+  --color-emerald-900: #0100cc;
+  --color-emerald-950: #0b1650;
+
+  /* Neutrals: cool greys around the host's #231f20 text and #757575 secondary text. */
+  --color-stone-50: #f7f9fc;
+  --color-stone-100: #eef1f7;
+  --color-stone-200: #e6e9f2;
+  --color-stone-300: #d3d8e3;
+  --color-stone-400: #a2a7b2;
+  --color-stone-500: #7c818c;
+  --color-stone-600: #5c6069;
+  --color-stone-700: #44474e;
+  --color-stone-800: #2c2b30;
+  --color-stone-900: #231f20;
+  --color-stone-950: #141213;
 }
 
 /* A visible keyboard focus everywhere, in both color schemes. */
 :focus-visible {
   outline: 2px solid var(--color-emerald-600);
   outline-offset: 2px;
+}
+
+h1,
+h2 {
+  letter-spacing: -0.01em;
 }

@@ -1,12 +1,20 @@
 // The root layout. Every page lives under /[locale] (/en, /fi, /sv, /et), so the
 // <html lang> attribute is always right for the page.
 import type { Metadata } from 'next';
+import { Zalando_Sans_SemiExpanded } from 'next/font/google';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { getT } from '@/i18n/get-t';
 import { isLocale } from '@/i18n/locales';
 import '../globals.css';
+
+// Self-hosted at build time by Next.js; system fonts are the fallback.
+const brandFont = Zalando_Sans_SemiExpanded({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-brand',
+  display: 'swap',
+});
 
 export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Promise<Metadata> {
   const { locale } = await params;
@@ -21,7 +29,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
   const t = getT(locale);
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={brandFont.variable}>
       <body className="flex min-h-dvh flex-col bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100">
         <a
           href="#main"
@@ -83,7 +91,7 @@ function LoopMark() {
     <svg
       aria-hidden="true"
       viewBox="0 0 32 32"
-      className="size-9 shrink-0 rounded-xl bg-emerald-700 p-1.5 text-white"
+      className="size-9 shrink-0 rounded-xl bg-linear-to-br from-emerald-400 via-emerald-500 to-emerald-800 p-1.5 text-white"
       fill="none"
       stroke="currentColor"
       strokeWidth="2.5"

@@ -69,7 +69,7 @@ export const ResultPanel = forwardRef<HTMLHeadingElement, Props>(function Result
       {decision === 'approved' ? (
         <Link
           href={`/${locale}/sign/${result.applicationId}`}
-          className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-emerald-800 px-5 py-2 text-base font-semibold text-white hover:bg-emerald-900 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
+          className="mt-4 inline-flex min-h-11 items-center rounded-full bg-emerald-800 px-5 py-2 text-base font-semibold text-white hover:bg-emerald-900 dark:bg-emerald-300 dark:text-emerald-950 dark:hover:bg-emerald-200"
         >
           {t('apply.result.sign')}
         </Link>
@@ -98,7 +98,7 @@ export const ResultPanel = forwardRef<HTMLHeadingElement, Props>(function Result
           </p>
           <Link
             href={`/${locale}/sign/${result.applicationId}`}
-            className="mt-4 inline-flex min-h-12 items-center rounded-xl border border-current px-5 font-semibold underline-offset-4 hover:underline"
+            className="mt-4 inline-flex min-h-12 items-center rounded-full border border-current px-5 font-semibold underline-offset-4 hover:underline"
           >
             {t('apply.result.signatoryLink')}
           </Link>
@@ -109,7 +109,7 @@ export const ResultPanel = forwardRef<HTMLHeadingElement, Props>(function Result
       <button
         type="button"
         onClick={onEdit}
-        className="mt-4 min-h-11 rounded-lg border border-current px-4 py-2 text-base font-medium"
+        className="mt-4 min-h-11 rounded-full border border-current px-4 py-2 text-base font-medium"
       >
         {t('apply.result.edit')}
       </button>

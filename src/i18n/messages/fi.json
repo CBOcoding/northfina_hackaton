@@ -7,6 +7,8 @@
   "nav.language": "Kieli",
   "catalogue.title": "Valikoima",
   "catalogue.intro": "Jokaisen laitteen voi vuokrata, palauttaa, kunnostaa ja vuokrata uudelleen.",
+  "catalogue.whatYouCanLease": "Mitä voit liisata",
+  "catalogue.jumpTo": "Siirry tuoteryhmään",
   "catalogue.pricesOn": "Nettolistahinnat {date}",
   "catalogue.itemCount": "{count} kpl",
   "catalogue.empty": "Tietokannassa ei ole vielä laitteita. Aja npm run db:setup ja lataa sivu uudelleen.",

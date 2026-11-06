@@ -230,7 +230,7 @@ export function EndOfTermPanel(props: Props) {
         <button
           type="submit"
           disabled={busy}
-          className="min-h-12 rounded-xl bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-12 rounded-full bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? t('endOfTerm.busy') : t('endOfTerm.confirm')}
         </button>

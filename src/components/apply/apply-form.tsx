@@ -371,7 +371,7 @@ export function ApplyForm({ locale, questions, customers, assets, table, initial
         <button
           type="submit"
           disabled={sending}
-          className="mt-4 min-h-12 rounded-xl bg-emerald-700 px-6 py-3 text-lg font-semibold text-white hover:bg-emerald-800 disabled:opacity-60 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+          className="mt-4 min-h-12 rounded-full bg-emerald-700 px-6 py-3 text-lg font-semibold text-white hover:bg-emerald-800 disabled:opacity-60 dark:bg-emerald-600 dark:hover:bg-emerald-500"
         >
           {sending ? t('apply.sending') : t('apply.submit')}
         </button>

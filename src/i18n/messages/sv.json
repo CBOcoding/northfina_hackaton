@@ -7,6 +7,8 @@
   "nav.language": "Språk",
   "catalogue.title": "Katalog",
   "catalogue.intro": "Varje produkt kan leasas, returneras, renoveras och leasas igen.",
+  "catalogue.whatYouCanLease": "Det här kan du leasa",
+  "catalogue.jumpTo": "Gå till en kategori",
   "catalogue.pricesOn": "Nettolistpriser {date}",
   "catalogue.itemCount": "{count} st.",
   "catalogue.empty": "Det finns inga produkter i databasen ännu. Kör npm run db:setup och ladda om sidan.",

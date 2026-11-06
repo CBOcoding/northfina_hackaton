@@ -244,7 +244,7 @@ export function QuoteCalculator({
         {priced ? (
           <Link
             href={`/${locale}/apply?asset=${assetId}&qty=1&term=${termMonths}&down=${downPaymentCents}`}
-            className="flex min-h-12 items-center justify-center rounded-xl bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800"
+            className="flex min-h-12 items-center justify-center rounded-full bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800"
           >
             {t('quote.apply')}
           </Link>
