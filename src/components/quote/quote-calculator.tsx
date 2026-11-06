@@ -193,14 +193,16 @@ export function QuoteCalculator({ locale, assetId, listPriceCents, vatRateBp, ta
             </label>
             <input
               id={typedId}
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={0}
-              max={downMaxCents / 100}
-              step={1}
-              value={downPaymentCents / 100}
+              pattern="[0-9]*"
+              placeholder="0"
+              autoComplete="off"
+              value={downPaymentCents === 0 ? '' : String(downPaymentCents / 100)}
               disabled={downMaxCents === 0}
-              onChange={(e) => setRequestedDownCents(Number(e.target.value) * 100)}
+              onChange={(e) =>
+                setRequestedDownCents(Number(e.target.value.replace(/\D/g, '').slice(0, 7)) * 100)
+              }
               className="min-h-11 w-32 rounded-lg border border-stone-300 bg-white px-3 font-mono tabular-nums dark:border-stone-700 dark:bg-stone-900"
             />
           </div>
