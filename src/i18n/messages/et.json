@@ -7,6 +7,8 @@
   "nav.language": "Keel",
   "catalogue.title": "Kataloog",
   "catalogue.intro": "Iga toodet saab liisida, tagastada, korda teha ja uuesti liisida.",
+  "catalogue.whatYouCanLease": "Mida saad liisida",
+  "catalogue.jumpTo": "Mine kategooriasse",
   "catalogue.pricesOn": "Hinnakirja netohinnad seisuga {date}",
   "catalogue.itemCount": "{count} tk",
   "catalogue.empty": "Andmebaasis pole veel tooteid. Käivita npm run db:setup ja laadi leht uuesti.",

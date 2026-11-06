@@ -54,7 +54,7 @@ export function LeaseAgain({ locale, assetId, who, help }: Props) {
         type="button"
         onClick={lease}
         disabled={busy}
-        className="min-h-12 self-start rounded-xl bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+        className="min-h-12 self-start rounded-full bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
       >
         {busy ? t('secondLife.leaseAgainBusy') : t('secondLife.leaseAgain', { who })}
       </button>

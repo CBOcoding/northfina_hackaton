@@ -102,7 +102,7 @@ export function SignForm({ locale, applicationId, suggestedSigner, signatoryOnly
       <button
         type="submit"
         disabled={busy || !accepted || signedBy.trim() === ''}
-        className="min-h-12 rounded-xl bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-12 rounded-full bg-emerald-700 px-6 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? t('sign.busy') : t('sign.submit')}
       </button>
