@@ -312,5 +312,21 @@
   "endOfTerm.ended.returned": "Palautettu {date}. Kiitos: se saa nyt uuden elämän.",
   "endOfTerm.ended.passed_on": "Annettu eteenpäin {date}. Se menee suoraan seuraavalle jonottajalle.",
   "endOfTerm.ended.exited_early": "Päätetty etuajassa {date}.",
-  "endOfTerm.nextLife": "Katso tuotteen {name} seuraava elämä"
+  "endOfTerm.nextLife": "Katso tuotteen {name} seuraava elämä",
+  "nav.audit": "Muutosloki",
+  "audit.title": "Muutosloki",
+  "audit.intro": "Jokainen tietojen muutos, uusin ensin (viimeiset {limit}). Jokainen rivi tallennetaan yhdessä itse muutoksen kanssa, joten mikään ei muutu jälkiä jättämättä.",
+  "audit.empty": "Mitään ei ole vielä muutettu.",
+  "audit.col.when": "Milloin",
+  "audit.col.action": "Mitä tapahtui",
+  "audit.col.entity": "Kohde",
+  "audit.col.actor": "Kuka",
+  "audit.col.details": "Tiedot",
+  "audit.show": "Näytä",
+  "audit.action.application.submitted": "Hakemus käsitelty",
+  "audit.action.contract.signed": "Sopimus allekirjoitettu",
+  "audit.action.contract.bought": "Tuote ostettu kauden lopussa",
+  "audit.action.contract.returned": "Tuote palautettu kauden lopussa",
+  "audit.action.contract.passed_on": "Tuote annettu eteenpäin kauden lopussa",
+  "audit.action.asset.status_changed": "Tuotteen tila muuttui"
 }

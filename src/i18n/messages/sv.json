@@ -312,5 +312,21 @@
   "endOfTerm.ended.returned": "Återlämnad {date}. Tack: nu får den ett nytt liv.",
   "endOfTerm.ended.passed_on": "Förd vidare {date}. Den går direkt till nästa person som väntar.",
   "endOfTerm.ended.exited_early": "Avslutad i förtid {date}.",
-  "endOfTerm.nextLife": "Se nästa liv för {name}"
+  "endOfTerm.nextLife": "Se nästa liv för {name}",
+  "nav.audit": "Ändringslogg",
+  "audit.title": "Ändringslogg",
+  "audit.intro": "Varje ändring av data, nyaste först (de senaste {limit}). Varje rad sparas tillsammans med själva ändringen, så inget ändras utan spår.",
+  "audit.empty": "Inget har ändrats än.",
+  "audit.col.when": "När",
+  "audit.col.action": "Vad som hände",
+  "audit.col.entity": "Gäller",
+  "audit.col.actor": "Vem",
+  "audit.col.details": "Detaljer",
+  "audit.show": "Visa",
+  "audit.action.application.submitted": "Ansökan avgjord",
+  "audit.action.contract.signed": "Avtal undertecknat",
+  "audit.action.contract.bought": "Produkten köpt vid avtalstidens slut",
+  "audit.action.contract.returned": "Produkten återlämnad vid avtalstidens slut",
+  "audit.action.contract.passed_on": "Produkten förd vidare vid avtalstidens slut",
+  "audit.action.asset.status_changed": "Produktens status ändrad"
 }

@@ -51,6 +51,12 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
                 >
                   {t('nav.contracts')}
                 </Link>
+                <Link
+                  href={`/${locale}/audit`}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white"
+                >
+                  {t('nav.audit')}
+                </Link>
               </nav>
               <LanguageSwitcher current={locale} label={t('nav.language')} />
             </div>
