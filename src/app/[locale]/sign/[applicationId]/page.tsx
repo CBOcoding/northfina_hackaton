@@ -13,6 +13,7 @@ import { getT } from '@/i18n/get-t';
 import { intlLocale, isLocale } from '@/i18n/locales';
 import {
   getSignableApplication,
+  isSignable,
   leaseFromApplication,
   loadLeaseData,
   prepareLease,
@@ -42,14 +43,10 @@ export default async function SignPage({ params }: PageProps<'/[locale]/sign/[ap
       : '';
   const suggestedSigner = signatoryOnly ? signatoryEmail : (customer?.name ?? '');
 
-  const prepared =
-    application.decision === 'approved'
-      ? await prepareLease(
-          db,
-          data,
-          leaseFromApplication(application, suggestedSigner || '-', today)
-        )
-      : null;
+  const signable = isSignable(application);
+  const prepared = signable
+    ? await prepareLease(db, data, leaseFromApplication(application, suggestedSigner || '-', today))
+    : null;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
@@ -61,7 +58,15 @@ export default async function SignPage({ params }: PageProps<'/[locale]/sign/[ap
         {customer?.name ?? application.customerId}
       </p>
 
-      {application.decision !== 'approved' ? (
+      {signatoryOnly && signable ? (
+        <p
+          role="status"
+          className="mt-6 rounded-xl bg-sky-50 p-5 text-sky-950 ring-1 ring-sky-200 ring-inset dark:bg-sky-950 dark:text-sky-100 dark:ring-sky-800"
+        >
+          {t('sign.waitingFor', { email: signatoryEmail || '-' })}
+        </p>
+      ) : null}
+      {!signable ? (
         <p
           role="status"
           className="mt-6 rounded-xl bg-amber-50 p-5 text-amber-950 ring-1 ring-amber-200 ring-inset dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-800"

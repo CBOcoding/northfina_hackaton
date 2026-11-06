@@ -92,9 +92,17 @@ export const ResultPanel = forwardRef<HTMLHeadingElement, Props>(function Result
         </p>
       ) : null}
       {reasons.some((r) => r.code === 'SIGNATORY_REQUIRED') && signatory ? (
-        <p className="mt-4 text-lg font-medium">
-          {t('apply.result.signatory', { email: signatory })}
-        </p>
+        <>
+          <p className="mt-4 text-lg font-medium">
+            {t('apply.result.signatory', { email: signatory })}
+          </p>
+          <Link
+            href={`/${locale}/sign/${result.applicationId}`}
+            className="mt-4 inline-flex min-h-12 items-center rounded-xl border border-current px-5 font-semibold underline-offset-4 hover:underline"
+          >
+            {t('apply.result.signatoryLink')}
+          </Link>
+        </>
       ) : null}
 
       <p className="mt-6 text-sm">{t('apply.result.reference', { id: result.applicationId })}</p>
