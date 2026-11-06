@@ -95,6 +95,33 @@ describe('endContract', () => {
     expect(await db.auditLog.count({ where: { action: 'contract.bought' } })).toBe(1);
   });
 
+  it('two requests at the same time (double click, two tabs): only one ends the contract', async () => {
+    const results = await Promise.all([
+      endContract(db, vatRates, { number, choice: 'buy', actor: 'tab-1' }),
+      endContract(db, vatRates, {
+        number,
+        choice: 'return',
+        actor: 'tab-2',
+        reports: { 'ebike-003': { condition: 'good', usageValue: 100 } },
+      }),
+    ]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.filter((r) => !r.ok)).toEqual([{ ok: false, reason: 'not_active' }]);
+
+    const row = await db.contract.findUniqueOrThrow({
+      where: { number },
+      include: { invoices: { where: { kind: 'buyout' } } },
+    });
+    // A buyout invoice exists exactly when the contract was bought.
+    expect(row.invoices).toHaveLength(row.status === 'bought' ? 1 : 0);
+    const asset = await db.asset.findUniqueOrThrow({ where: { id: 'ebike-003' } });
+    expect(asset.previous_lives).toBe(1);
+    const ends = await db.auditLog.count({
+      where: { entity_id: number, action: { not: 'contract.signed' } },
+    });
+    expect(ends).toBe(1);
+  });
+
   it('refuses a return without a report, writing nothing', async () => {
     const result = await endContract(db, vatRates, { number, choice: 'pass_on', actor: 'aino' });
     expect(result).toEqual({ ok: false, reason: 'missing_report', assetId: 'ebike-003' });
