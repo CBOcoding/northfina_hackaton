@@ -18,6 +18,10 @@ afterAll(async () => {
   await cleanup();
 });
 beforeEach(async () => {
+  await db.invoice.deleteMany();
+  await db.contractAsset.deleteMany();
+  await db.contract.deleteMany();
+  await db.application.deleteMany();
   await db.auditLog.deleteMany();
   await db.asset.deleteMany();
 });
@@ -68,6 +72,79 @@ describe('changeAssetStatus', () => {
     const audit = await db.auditLog.findFirstOrThrow();
     expect(audit).toMatchObject({ action: 'asset.status_changed', entity_id: 'ebike-001' });
     expect(JSON.parse(audit.details_json ?? '')).toEqual({ from: 'available', to: 'reserved' });
+  });
+
+  async function leaseOf(assetId: string, status: string) {
+    const app = await db.application.create({
+      data: {
+        customer_id: 'cust-aino',
+        quoted_on: '2026-11-05',
+        price_list_version: 1,
+        list_price_cents: 1,
+        down_payment_cents: 0,
+        term_months: 36,
+        decision: 'approved',
+      },
+    });
+    await db.contract.create({
+      data: {
+        number: `ML-2026-${status}`,
+        application_id: app.id,
+        customer_id: 'cust-aino',
+        signed_on: '2026-11-05',
+        start_date: '2026-11-05',
+        price_list_version: 1,
+        list_price_cents: 1,
+        down_payment_cents: 0,
+        financed_cents: 1,
+        band: 'A',
+        factor_micro: 1,
+        term_months: 36,
+        monthly_net_cents: 1,
+        buyout_percent: 1,
+        buyout_net_cents: 1,
+        lock_reason: 'none',
+        signed_by: 'Aino',
+        status,
+        items: {
+          create: [{ asset_id: assetId, list_price_cents: 1, quantity: 1, life_number: 1 }],
+        },
+      },
+    });
+  }
+
+  it('refuses to change an item in an active contract and writes nothing', async () => {
+    await seedAssets(db, dataPack);
+    await db.asset.update({ where: { id: 'ebike-001' }, data: { status: 'reserved' } });
+    await leaseOf('ebike-001', 'active');
+
+    const result = await changeAssetStatus(db, {
+      id: 'ebike-001',
+      status: 'available',
+      actor: 'team-test',
+    });
+
+    expect(result).toEqual({ ok: false, reason: 'under_contract' });
+    expect((await db.asset.findUniqueOrThrow({ where: { id: 'ebike-001' } })).status).toBe(
+      'reserved'
+    );
+    expect(await db.auditLog.count()).toBe(0);
+  });
+
+  it('changes an item whose contract has ended, recording the status read in the transaction', async () => {
+    await seedAssets(db, dataPack);
+    await db.asset.update({ where: { id: 'ebike-001' }, data: { status: 'returned' } });
+    await leaseOf('ebike-001', 'returned');
+
+    const result = await changeAssetStatus(db, {
+      id: 'ebike-001',
+      status: 'available',
+      actor: 'x',
+    });
+
+    expect(result).toMatchObject({ ok: true, asset: { status: 'available' } });
+    const audit = await db.auditLog.findFirstOrThrow();
+    expect(JSON.parse(audit.details_json ?? '')).toEqual({ from: 'returned', to: 'available' });
   });
 
   it('answers not_found for an unknown id and writes nothing', async () => {
