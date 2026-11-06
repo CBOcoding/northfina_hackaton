@@ -11,9 +11,11 @@ type Props = {
   contract: ContractSnapshot;
   lock: LockedPrice | null;
   quotedOn: string;
+  /** A returned item leased again: priced at its market value, not from the price list. */
+  secondLife?: boolean;
 };
 
-export function ContractTerms({ locale, contract, lock, quotedOn }: Props) {
+export function ContractTerms({ locale, contract, lock, quotedOn, secondLife }: Props) {
   const t = getT(locale);
   const eur = (cents: number) => formatEuro(cents, intlLocale[locale]);
   const factor = new Intl.NumberFormat(intlLocale[locale], { minimumFractionDigits: 6 }).format(
@@ -22,7 +24,9 @@ export function ContractTerms({ locale, contract, lock, quotedOn }: Props) {
 
   const terms = [
     {
-      label: t('contract.listPrice', { version: contract.priceListVersion }),
+      label: secondLife
+        ? t('contract.secondLifePrice', { life: contract.items[0]?.lifeNumber ?? 2 })
+        : t('contract.listPrice', { version: contract.priceListVersion }),
       value: eur(contract.listPriceCents),
     },
     { label: t('contract.downPayment'), value: eur(contract.downPaymentCents) },
