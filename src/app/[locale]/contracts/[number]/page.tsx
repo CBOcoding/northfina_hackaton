@@ -4,14 +4,17 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { ContractTerms } from '@/components/contract/contract-terms';
+import { EndOfTermPanel } from '@/components/contract/end-of-term-panel';
 import { TimeTravel } from '@/components/contract/time-travel';
 import {
   loadCoefficientTable,
   loadCustomers,
   loadPriceLists,
   loadResidualCurves,
+  loadVatRates,
 } from '@/data/load';
 import { decideLockedPrice, type SigningItem } from '@/domain/contract';
+import { endOfTerm, termEndDate } from '@/domain/end-of-term';
 import { listPriceOn } from '@/domain/price-list';
 import { monthOn } from '@/domain/replay';
 import { getT } from '@/i18n/get-t';
@@ -30,7 +33,7 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
   const stored = await getContract(db, number);
   if (!stored) notFound();
   const { contract, invoices } = stored;
-  const [customers, priceLists, table, curves, assets, application] = await Promise.all([
+  const [customers, priceLists, table, curves, assets, application, vatRates] = await Promise.all([
     loadCustomers(),
     loadPriceLists(),
     loadCoefficientTable(),
@@ -40,6 +43,7 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
       where: { number },
       select: { application: { select: { quoted_on: true } } },
     }),
+    loadVatRates(),
   ]);
   const customer = customers.find((c) => c.id === contract.customerId);
 
@@ -86,6 +90,30 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
         }
       : undefined;
 
+  // End of term (stream B): the items as we know them, and the buyout invoice it would create.
+  const endItems = contract.items.flatMap((item) => {
+    const asset = assets.find((a) => a.id === item.assetId);
+    return asset
+      ? [
+          {
+            assetId: asset.id,
+            name: `${asset.make} ${asset.model}`,
+            condition: asset.condition,
+            usageUnit: asset.usage.unit,
+            usageValue: asset.usage.value,
+          },
+        ]
+      : [];
+  });
+  const buyoutPreview = endOfTerm(vatRates, contract, 'buy', endItems);
+  const buyout =
+    buyoutPreview.ok && buyoutPreview.invoice
+      ? {
+          netCents: buyoutPreview.invoice.netCents,
+          grossCents: buyoutPreview.invoice.grossCents,
+        }
+      : null;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <Link
@@ -121,6 +149,15 @@ export default async function ContractPage({ params }: PageProps<'/[locale]/cont
         startDate={contract.startDate}
         initialMonth={monthOn(invoices, todayIso())}
         exit={exit}
+      />
+      <EndOfTermPanel
+        locale={locale}
+        number={contract.number}
+        status={contract.status}
+        endDate={termEndDate(contract.startDate, contract.termMonths)}
+        endedOn={contract.endedOn}
+        buyout={buyout}
+        items={endItems}
       />
     </div>
   );
