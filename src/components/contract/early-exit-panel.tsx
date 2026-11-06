@@ -77,7 +77,11 @@ export function EarlyExitPanel({ locale, context, monthsPaid, vatRateBp }: Props
           <p className="font-semibold">{t('earlyExit.return')}</p>
           <p className="font-mono text-2xl tabular-nums">{eur(withVat(returnCost))}</p>
           <p className="text-sm text-stone-600 dark:text-stone-300">
-            {t('earlyExit.returnDetail', { value: eur(value), net: eur(returnCost) })}
+            {t('earlyExit.returnDetail', {
+              owed: eur(exit.payoffNetCents),
+              value: eur(value),
+              net: eur(returnCost),
+            })}
           </p>
           <label htmlFor={selectId} className="mt-2 block text-sm font-medium">
             {t('earlyExit.condition')}

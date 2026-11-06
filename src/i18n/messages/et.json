@@ -149,7 +149,7 @@
   "earlyExit.keep": "Jäta endale",
   "earlyExit.keepDetail": "{net} ilma käibemaksuta: {rents} järelejäänud renti ja väljaost ({undiscounted}), miinus {saved} intressi, mida sa enam ei võlgne.",
   "earlyExit.return": "Tagasta",
-  "earlyExit.returnDetail": "Arvestame maha selle tänase turuväärtuse {value}. Maksad {net} ilma käibemaksuta, mitte kunagi alla 0.",
+  "earlyExit.returnDetail": "Sul on veel tasuda {owed} ilma käibemaksuta. Toode tuleb meile tagasi, seega arvestame maha selle tänase turuväärtuse {value}. Maksad vahe, {net} ilma käibemaksuta. Kui toode on väärt rohkem, kui sa võlgned, ei maksa sa midagi.",
   "earlyExit.condition": "Seisukord tagastamisel",
   "sign.title": "Allkirjasta liisinguleping",
   "sign.application": "Taotlus {id}",

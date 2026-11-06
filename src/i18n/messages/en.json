@@ -149,7 +149,7 @@
   "earlyExit.keep": "Keep it",
   "earlyExit.keepDetail": "{net} without VAT: {rents} rents left and the buyout ({undiscounted}), minus {saved} of interest you no longer owe.",
   "earlyExit.return": "Give it back",
-  "earlyExit.returnDetail": "We credit its market value today, {value}. You pay {net} without VAT, never less than 0.",
+  "earlyExit.returnDetail": "You still owe {owed} without VAT. The item goes back to us, so we deduct its market value today, {value}. You pay the difference, {net} without VAT. If it is worth more than you owe, you pay nothing.",
   "earlyExit.condition": "Condition at return",
   "sign.title": "Sign your lease",
   "sign.application": "Application {id}",

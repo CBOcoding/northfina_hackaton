@@ -149,7 +149,7 @@
   "earlyExit.keep": "Behåll den",
   "earlyExit.keepDetail": "{net} exkl. moms: {rents} återstående hyror och slutköpet ({undiscounted}), minus {saved} ränta som du inte längre är skyldig.",
   "earlyExit.return": "Lämna tillbaka",
-  "earlyExit.returnDetail": "Vi krediterar dess marknadsvärde i dag, {value}. Du betalar {net} exkl. moms, aldrig under 0.",
+  "earlyExit.returnDetail": "Du är fortfarande skyldig {owed} exkl. moms. Varan kommer tillbaka till oss, så vi drar av dess marknadsvärde i dag, {value}. Du betalar skillnaden, {net} exkl. moms. Är den värd mer än du är skyldig betalar du ingenting.",
   "earlyExit.condition": "Skick vid återlämning",
   "sign.title": "Skriv under ditt leasingavtal",
   "sign.application": "Ansökan {id}",

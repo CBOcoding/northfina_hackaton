@@ -149,7 +149,7 @@
   "earlyExit.keep": "Pidä tuote",
   "earlyExit.keepDetail": "{net} ilman ALV:tä: {rents} jäljellä olevaa vuokraa ja lunastus ({undiscounted}), miinus {saved} korkoa, jota et enää ole velkaa.",
   "earlyExit.return": "Palauta tuote",
-  "earlyExit.returnDetail": "Hyvitämme sen tämänhetkisen markkina-arvon {value}. Maksat {net} ilman ALV:tä, ei koskaan alle 0.",
+  "earlyExit.returnDetail": "Sinulla on vielä maksettavaa {owed} ilman ALV:tä. Tuote palaa meille, joten vähennämme sen tämänhetkisen markkina-arvon {value}. Maksat erotuksen, {net} ilman ALV:tä. Jos tuote on arvokkaampi kuin velkasi, et maksa mitään.",
   "earlyExit.condition": "Kunto palautettaessa",
   "sign.title": "Allekirjoita vuokrasopimus",
   "sign.application": "Hakemus {id}",
