@@ -158,5 +158,6 @@ describe('rentSchedule: money that adds up (property tests, thousands of random 
       }),
       { numRuns: 2_000 }
     );
-  });
+    // 2 000 random contracts take ~1 s locally but can pass 5 s on a CI runner with coverage on.
+  }, 30_000);
 });
